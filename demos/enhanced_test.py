@@ -31,7 +31,7 @@ class EnhancedAPITester:
     async def handle_error_alert(self, alert_data):
         """Handle error alerts from the monitoring system"""
         logger.warning(
-            f"🚨 ERROR ALERT: {alert_data['error_type']} - "
+            f"ERROR ALERT: {alert_data['error_type']} - "
             f"{alert_data['error_count']} errors in {alert_data['time_window']}s"
         )
 
@@ -43,23 +43,18 @@ class EnhancedAPITester:
         client = AsyncPocketOptionClient(ssid=self.session_id, is_demo=self.is_demo)
 
         try:
-            # Test connection with monitoring
-            success = await client.execute_with_monitoring(
-                operation_name="connection_test", func=client.connect
-            )
+            # Test connection directly
+            try:
+                await client.connect()
+                success = client.is_connected
+            except Exception as e:
+                success = False
 
             if success:
                 logger.success(" Connection successful with monitoring")
 
-                # Get health status
-                health = await client.get_health_status()
-                logger.info(f"🏥 Health Status: {health['overall_status']}")
-
-                # Get performance metrics
-                metrics = await client.get_performance_metrics()
-                logger.info(
-                    f"Performance: {len(metrics['operation_metrics'])} tracked operations"
-                )
+                # Get connection status
+                logger.info(f"Connection Status: {'Connected' if client.is_connected else 'Disconnected'}")
 
                 # Test some operations
                 await self.test_monitored_operations(client)
@@ -74,21 +69,17 @@ class EnhancedAPITester:
 
     async def test_monitored_operations(self, client):
         """Test various operations with monitoring"""
-        logger.info("Testing Monitored Operations")
-
         operations = [
-            ("balance_check", lambda: client.get_balance()),
+            ("balance_check", client.get_balance),
             ("candles_fetch", lambda: client.get_candles("EURUSD_otc", 60, 50)),
-            ("health_check", lambda: client.get_health_status()),
+            ("health_check", client.get_health_status),
         ]
 
         for op_name, operation in operations:
             try:
                 start_time = time.time()
 
-                await client.execute_with_monitoring(
-                    operation_name=op_name, func=operation
-                )
+                await operation()
 
                 duration = time.time() - start_time
                 logger.success(f" {op_name}: {duration:.3f}s")
@@ -132,10 +123,10 @@ class EnhancedAPITester:
                 failures += 1
                 logger.warning(f"Attempt {i + 1}: {e} (State: {breaker.state})")
 
-        logger.info(f"🔥 Circuit breaker opened after {failures} failures")
+        logger.info(f"Circuit breaker opened after {failures} failures")
 
         # Wait for recovery
-        logger.info("⏳ Waiting for recovery...")
+        logger.info("Waiting for recovery...")
         await asyncio.sleep(6)
 
         # Test with working operation
@@ -153,7 +144,7 @@ class EnhancedAPITester:
         async def create_and_test_client(client_id: int):
             """Create client and perform operations"""
             client = AsyncPocketOptionClient(
-                session_id=self.session_id, is_demo=self.is_demo
+                ssid=self.session_id, is_demo=self.is_demo
             )
 
             start_time = time.time()
@@ -164,7 +155,6 @@ class EnhancedAPITester:
                 if client.is_connected:
                     # Perform some operations
                     balance = await client.get_balance()
-                    health = await client.get_health_status()
 
                     duration = time.time() - start_time
                     return {
@@ -172,7 +162,6 @@ class EnhancedAPITester:
                         "success": True,
                         "duration": duration,
                         "balance": balance.balance if balance else None,
-                        "health": health["overall_status"],
                     }
 
             except Exception as e:
@@ -199,9 +188,9 @@ class EnhancedAPITester:
         failed = [r for r in results if not (isinstance(r, dict) and r.get("success"))]
 
         logger.info("Concurrent Test Results:")
-        logger.info(f"    Successful: {len(successful)}/{concurrent_level}")
-        logger.info(f"   Failed: {len(failed)}")
-        logger.info(f"   ⏱️  Total Time: {total_time:.3f}s")
+        logger.info(f"Successful: {len(successful)}/{concurrent_level}")
+        logger.info(f"Failed: {len(failed)}")
+        logger.info(f"Total Time: {total_time:.3f}s")
 
         if successful:
             avg_time = sum(r["duration"] for r in successful) / len(successful)
@@ -209,7 +198,7 @@ class EnhancedAPITester:
 
     async def test_error_monitoring(self):
         """Test error monitoring capabilities"""
-        logger.info("🔍 Testing Error Monitoring")
+        logger.info("Testing Error Monitoring")
         print("=" * 60)
 
         # Generate some test errors
@@ -233,12 +222,12 @@ class EnhancedAPITester:
         summary = error_monitor.get_error_summary(hours=1)
 
         logger.info("Error Summary:")
-        logger.info(f"   Total Errors: {summary['total_errors']}")
-        logger.info(f"   Error Rate: {summary['error_rate']:.2f}/hour")
-        logger.info(f"   Top Errors: {summary['top_errors'][:3]}")
+        logger.info(f"Total Errors: {summary['total_errors']}")
+        logger.info(f"Error Rate: {summary['error_rate']:.2f}/hour")
+        logger.info(f"Top Errors: {summary['top_errors'][:3]}")
 
         # Test alert threshold
-        logger.info("🚨 Testing Alert Threshold...")
+        logger.info("Testing Alert Threshold...")
         for i in range(15):  # Generate many errors to trigger alert
             await error_monitor.record_error(
                 error_type="test_spam",
@@ -284,7 +273,7 @@ class EnhancedAPITester:
         report.append("")
 
         # Health monitoring section
-        report.append("🏥 HEALTH MONITORING")
+        report.append("HEALTH MONITORING")
         report.append("-" * 40)
         report.append(f"Overall Status: {health_report['overall_status']}")
 
@@ -318,7 +307,7 @@ class EnhancedAPITester:
         with open("enhanced_performance_report.txt", "w") as f:
             f.write(report_text)
 
-        logger.success("📄 Report saved to enhanced_performance_report.txt")
+        logger.success("Report saved to enhanced_performance_report.txt")
 
     async def run_all_tests(self):
         """Run all enhanced tests"""
@@ -371,7 +360,7 @@ async def main():
     tester = EnhancedAPITester(session_id=session_id, is_demo=True)
     await tester.run_all_tests()
 
-    logger.success("🎉 All enhanced tests completed!")
+    logger.success("All enhanced tests completed!")
 
 
 if __name__ == "__main__":

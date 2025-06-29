@@ -43,11 +43,12 @@ async def demo_enhanced_features():
         client = AsyncPocketOptionClient(ssid=ssid, is_demo=True)
 
         print("Success: Client created with parsed components:")
-        print(f"   Session ID: {getattr(client, 'session_id', 'N/A')[:20]}...")
-        print(f"   UID: {client.uid}")
-        print(f"   Platform: {client.platform}")
-        print(f"   Demo Mode: {client.is_demo}")
-        print(f"   Fast History: {client.is_fast_history}")
+        print("")
+        print(f"Session ID: {getattr(client, 'session_id', 'N/A')[:20]}...")
+        print(f"UID: {client.uid}")
+        print(f"Platform: {client.platform}")
+        print(f"Demo Mode: {client.is_demo}")
+        print(f"Fast History: {client.is_fast_history}")
 
         # Test connection
         print("\nConnecting: Testing connection...")
@@ -189,14 +190,6 @@ async def demo_enhanced_features():
                     print(f"Statistics: DataFrame shape: {df.shape}")
                 except Exception as e:
                     print(f"Note: Candles test: {e}")
-
-                # Test health monitoring
-                health = await live_client.get_health_status()
-                print(f"Health Status: {health}")
-
-                # Test performance metrics
-                metrics = await live_client.get_performance_metrics()
-                print(f"Statistics: Performance Metrics: {metrics}")
 
             await live_client.disconnect()
 
