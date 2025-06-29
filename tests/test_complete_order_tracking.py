@@ -142,7 +142,7 @@ async def wait_for_trade_completion():
                 # Check if status indicates completion but no profit yet
                 elif result.status in ["win", "lose", "closed"]:
                     print(
-                        f"   📊 Order marked as {result.status} but no profit data yet..."
+                        f"   Order marked as {result.status} but no profit data yet..."
                     )
 
             else:
@@ -160,7 +160,7 @@ async def wait_for_trade_completion():
         # Final status check
         final_result = await client.check_order_result(order_result.order_id)
         if final_result:
-            print("\n📋 Final status:")
+            print("\nFinal status:")
             print(f"   Order ID: {final_result.order_id}")
             print(f"   Status: {final_result.status}")
             if final_result.profit is not None:
@@ -172,7 +172,7 @@ async def wait_for_trade_completion():
 
         # Show active orders count
         active_orders = await client.get_active_orders()
-        print(f"\n📊 Active orders remaining: {len(active_orders)}")
+        print(f"\nActive orders remaining: {len(active_orders)}")
 
     except Exception as e:
         print(f"Error: {e}")

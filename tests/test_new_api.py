@@ -64,7 +64,7 @@ async def test_basic_functionality():
                 print(f"Candles test: {e}")
 
             # Test 5: Order placement (demo)
-            print("\n5️⃣ Testing order placement...")
+            print("\nTesting order placement...")
             try:
                 order_result = await client.place_order(
                     asset="EURUSD_otc",
@@ -81,7 +81,7 @@ async def test_basic_functionality():
 
         finally:
             # Test 6: Disconnection
-            print("\n6️⃣ Testing disconnection...")
+            print("\nTesting disconnection...")
             await client.disconnect()
             print(" Disconnected successfully")
 
@@ -222,7 +222,7 @@ def print_api_features():
     for feature in features:
         print(f"  {feature}")
 
-    print("\n📊 SUPPORTED ASSETS:")
+    print("\nSUPPORTED ASSETS:")
     print("  - 50+ Forex pairs (major and exotic)")
     print("  - 20+ Cryptocurrencies")
     print("  - 15+ Commodities (Gold, Silver, Oil, etc.)")

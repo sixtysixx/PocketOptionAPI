@@ -75,7 +75,7 @@ async def test_order_tracking():
             return
 
         # Check active orders
-        print("\n📊 Checking active orders...")
+        print("\nChecking active orders...")
         active_orders = await client.get_active_orders()
         print(f"Active orders count: {len(active_orders)}")
 
@@ -113,7 +113,7 @@ async def test_order_tracking():
         # Final status
         final_result = await client.check_order_result(order_result.order_id)
         if final_result:
-            print(f"\n📋 Final order status: {final_result.status}")
+            print(f"\nFinal order status: {final_result.status}")
             if final_result.profit is not None:
                 print(f"Profit/Loss: ${final_result.profit:.2f}")
             else:

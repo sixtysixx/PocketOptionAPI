@@ -24,7 +24,7 @@ async def test_connection_fix():
     # Test with complete SSID format (like from browser)
     complete_ssid = r'42["auth",{"session":"test_session_12345","isDemo":1,"uid":12345,"platform":1,"isFastHistory":true}]'
 
-    print("📝 Using complete SSID format:")
+    print("Using complete SSID format:")
     print(f"   {complete_ssid[:50]}...")
     print()
 
@@ -51,13 +51,13 @@ async def test_connection_fix():
 
             if success:
                 print(" CONNECTION SUCCESSFUL!")
-                print(f"📊 Connection info: {client.connection_info}")
+                print(f"Connection info: {client.connection_info}")
                 print(
                     f"Connected to: {client.connection_info.region if client.connection_info else 'Unknown'}"
                 )
 
                 # Test basic functionality
-                print("\n📋 Testing basic functionality...")
+                print("\nTesting basic functionality...")
                 try:
                     balance = await client.get_balance()
                     if balance:
@@ -100,7 +100,7 @@ async def test_old_vs_new_comparison():
     print("Connection Pattern Comparison")
     print("=" * 60)
 
-    print("📋 OLD API Handshake Pattern:")
+    print("OLD API Handshake Pattern:")
     print('   1. Server sends: 0{"sid":"..."}')
     print("   2. Client sends: 40")
     print('   3. Server sends: 40{"sid":"..."}')
@@ -108,7 +108,7 @@ async def test_old_vs_new_comparison():
     print('   5. Server sends: 451-["successauth",...]')
     print()
 
-    print("📋 NEW API Handshake Pattern (FIXED):")
+    print("NEW API Handshake Pattern (FIXED):")
     print("   1.  Wait for server message with '0' and 'sid'")
     print("   2.  Send '40' response")
     print("   3.  Wait for server message with '40' and 'sid'")

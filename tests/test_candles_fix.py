@@ -24,7 +24,7 @@ async def test_candles_retrieval():
         print("📡 Connecting to PocketOption...")
         await client.connect()
 
-        print("\n📊 Requesting candles data...")
+        print("\nRequesting candles data...")
 
         # Test 1: Get recent candles for EURUSD
         asset = "EURUSD"
@@ -55,7 +55,7 @@ async def test_candles_retrieval():
             print("No candles received - this may indicate an issue")
 
         # Test 2: Get candles as DataFrame
-        print("\n📊 Testing DataFrame conversion...")
+        print("\nTesting DataFrame conversion...")
         try:
             df = await client.get_candles_dataframe(asset, timeframe, count)
             if not df.empty:

@@ -58,7 +58,7 @@ class EnhancedAPITester:
                 # Get performance metrics
                 metrics = await client.get_performance_metrics()
                 logger.info(
-                    f"📊 Performance: {len(metrics['operation_metrics'])} tracked operations"
+                    f"Performance: {len(metrics['operation_metrics'])} tracked operations"
                 )
 
                 # Test some operations
@@ -198,7 +198,7 @@ class EnhancedAPITester:
         successful = [r for r in results if isinstance(r, dict) and r.get("success")]
         failed = [r for r in results if not (isinstance(r, dict) and r.get("success"))]
 
-        logger.info("📊 Concurrent Test Results:")
+        logger.info("Concurrent Test Results:")
         logger.info(f"    Successful: {len(successful)}/{concurrent_level}")
         logger.info(f"   Failed: {len(failed)}")
         logger.info(f"   ⏱️  Total Time: {total_time:.3f}s")
@@ -250,7 +250,7 @@ class EnhancedAPITester:
 
     async def generate_performance_report(self):
         """Generate comprehensive performance report"""
-        logger.info("📋 Generating Performance Report")
+        logger.info("Generating Performance Report")
         print("=" * 60)
 
         # Get error summary

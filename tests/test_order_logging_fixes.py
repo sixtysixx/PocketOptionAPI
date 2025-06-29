@@ -69,7 +69,7 @@ async def test_fixes():
         # Check again
         final_result = await client_with_logs.check_order_result(order_result.order_id)
         if final_result:
-            print(f"📋 Final order status: {final_result.status}")
+            print(f"Final order status: {final_result.status}")
             if final_result.profit is not None:
                 print(f"Profit: ${final_result.profit:.2f}")
 

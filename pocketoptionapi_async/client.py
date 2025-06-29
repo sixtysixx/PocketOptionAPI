@@ -28,8 +28,8 @@ from .exceptions import (
     PocketOptionError,
     ConnectionError,
     AuthenticationError,
-    OrderError,
     InvalidParameterError,
+    OrderError,
 )
 
 
@@ -80,7 +80,7 @@ class AsyncPocketOptionClient:
             logger.add(lambda msg: None, level="CRITICAL")  # Disable most logging
         # Parse SSID if it's a complete auth message
         self._original_demo = None  # Store original demo value from SSID
-        if ssid.startswith('42["auth",'):
+        if ssid.startswith('42["auth"'):
             self._parse_complete_ssid(ssid)
         else:
             # Treat as raw session ID
@@ -656,43 +656,94 @@ class AsyncPocketOptionClient:
         return stats  # Private methods
 
     def _format_session_message(self) -> str:
-        """Format session authentication message"""
-        # Always create auth message from components using constructor parameters
-        # This ensures is_demo parameter is respected regardless of SSID format
+        """
+        Formats the session authentication message for the WebSocket.
+        This method constructs the '42["auth", {...}]' message using the
+        client's current state (session_id, is_demo, uid, platform).
+        It correctly handles JSON serialization of the authentication data,
+        including the complex PHP-serialized session string if that was provided.
+
+        Returns:
+            str: The fully formatted authentication message.
+        """
+        # Construct the authentication data dictionary. The `self.session_id`
+        # will contain either the raw session ID or the full PHP-serialized
+        # string, depending on how the client was initialized. The server
+        # is expected to handle both cases.
         auth_data = {
             "session": self.session_id,
-            "isDemo": 1 if self.is_demo else 0,
+            "isDemo": 1 if self.is_demo else 0,  # Convert boolean to integer
             "uid": self.uid,
             "platform": self.platform,
         }
 
-        if self.is_fast_history:
+        # The `isFastHistory` and `isOptimized` flags were observed in the new
+        # SSID format. We should include them if they were parsed or are set.
+        # This makes the re-authentication message more closely match the original.
+        if hasattr(self, 'is_fast_history') and self.is_fast_history:
             auth_data["isFastHistory"] = True
+        
+        # Check for 'isOptimized' which was also seen in the new format.
+        if hasattr(self, '_is_optimized') and self._is_optimized:
+             auth_data["isOptimized"] = True
 
+        # Use json.dumps to correctly serialize the dictionary, which handles
+        # escaping of characters within the PHP session string.
         return f'42["auth",{json.dumps(auth_data)}]'
 
     def _parse_complete_ssid(self, ssid: str) -> None:
-        """Parse complete SSID auth message to extract components"""
-        try:
-            # Extract JSON part
-            json_start = ssid.find("{")
-            json_end = ssid.rfind("}") + 1
-            if json_start != -1 and json_end > json_start:
-                json_part = ssid[json_start:json_end]
-                data = json.loads(json_part)
+        """
+        Parses a complete SSID authentication message (e.g., '42["auth",{...}]')
+        to extract session details. This method is designed to be robust against
+        different session value formats, including the new PHP-serialized strings.
 
-                self.session_id = data.get("session", "")
-                # Store original demo value from SSID, but don't override the constructor parameter
-                self._original_demo = bool(data.get("isDemo", 1))
-                # Keep the is_demo value from constructor - don't override it
-                self.uid = data.get("uid", 0)
-                self.platform = data.get("platform", 1)
-                # Don't store complete SSID - we'll reconstruct it with correct demo value
-                self._complete_ssid = None
-        except Exception as e:
-            logger.warning(f"Failed to parse SSID: {e}")
-            self.session_id = ssid
-            self._complete_ssid = None
+        Args:
+            ssid: The complete SSID string received from the browser.
+        """
+        try:
+            # The SSID starts with '42', followed by a JSON array.
+            if not ssid.startswith("42"):
+                logger.warning("SSID does not start with '42', treating as raw session ID.")
+                self.session_id = ssid
+                return
+
+            # Extract the JSON part of the string.
+            json_str = ssid[2:]
+            parsed_data = json.loads(json_str)
+
+            # The expected format is a list like ["auth", {auth_data}].
+            if isinstance(parsed_data, list) and len(parsed_data) > 1:
+                auth_data = parsed_data[1]
+                if isinstance(auth_data, dict):
+                    # The value of "session" can be a simple string or a complex
+                    # serialized PHP string. We treat it as an opaque token by
+                    # storing it exactly as received.
+                    self.session_id = auth_data.get("session", "")
+                    
+                    # Store original demo value, but do not override the constructor parameter.
+                    # This allows the user to force demo/live mode regardless of the SSID's content.
+                    self._original_demo = bool(auth_data.get("isDemo", 1))
+                    
+                    # Update client attributes from the parsed SSID data.
+                    self.uid = auth_data.get("uid", self.uid)
+                    self.platform = auth_data.get("platform", self.platform)
+                    
+                    # Handle new flags observed in the complex SSID format.
+                    self.is_fast_history = auth_data.get("isFastHistory", self.is_fast_history)
+                    # Store 'isOptimized' if present, to include it when re-formatting the message.
+                    self._is_optimized = auth_data.get("isOptimized", False)
+
+                    # Do not store the complete SSID, as we will reconstruct it to ensure
+                    # correct `isDemo` and other flags are used on reconnection.
+                    self._complete_ssid = None
+                else:
+                    raise ValueError("Second element of SSID JSON is not a dictionary.")
+            else:
+                raise ValueError("SSID JSON format is not a list or is too short.")
+
+        except (json.JSONDecodeError, TypeError, ValueError) as e:
+            logger.warning(f"Failed to parse complete SSID: {e}. Treating the entire string as a raw session ID.")
+            self.session_id = ssid # Fallback to treating the whole thing as the session ID
 
     async def _wait_for_authentication(self, timeout: float = 10.0) -> None:
         """Wait for authentication to complete (like old API)"""

@@ -928,7 +928,7 @@ async def run_integration_tests(ssid: str = None):
         logger.info(f"Total Duration: {summary['total_duration']:.2f}s")
 
         # System assessment
-        logger.info("\n📋 SYSTEM ASSESSMENT")
+        logger.info("\nSYSTEM ASSESSMENT")
         logger.info("-" * 30)
         assessment = report["system_assessment"]
         for aspect, details in assessment.items():

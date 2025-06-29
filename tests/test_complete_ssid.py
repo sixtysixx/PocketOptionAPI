@@ -42,7 +42,7 @@ async def test_complete_ssid_format():
             await client.connect()
             if client.is_connected:
                 print(" Connected successfully!")
-                print(f"📊 Connection info: {client.connection_info}")
+                print(f"Connection info: {client.connection_info}")
             else:
                 print(" Connection failed (expected with test SSID)")
         except Exception as e:
@@ -148,7 +148,7 @@ async def main():
 
     print("\n🎉 All tests completed!")
     print()
-    print("📋 Usage Examples:")
+    print("Usage Examples:")
     print("1. Complete SSID format (recommended):")
     print(
         '   ssid = r\'42["auth",{"session":"your_session","isDemo":1,"uid":your_uid,"platform":1}]\''

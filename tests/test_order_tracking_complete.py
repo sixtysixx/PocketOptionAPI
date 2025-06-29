@@ -54,12 +54,12 @@ async def test_complete_order_lifecycle():
             print("No balance received")
 
         # Test 1: Order Placement (should not create duplicates)
-        print("\n📋 TEST 1: Order Placement Without Duplication")
+        print("\nTEST 1: Order Placement Without Duplication")
         print("-" * 50)
 
         # Check initial active orders count
         initial_active = await client.get_active_orders()
-        print(f"📊 Initial active orders: {len(initial_active)}")
+        print(f"Initial active orders: {len(initial_active)}")
 
         # Place order
         print("Placing order...")
@@ -78,7 +78,7 @@ async def test_complete_order_lifecycle():
         print(f"   Duration: {order_result.duration}s")
 
         # Test 2: No Duplication Check
-        print("\n📋 TEST 2: No Order Duplication Check")
+        print("\nTEST 2: No Order Duplication Check")
         print("-" * 50)
 
         # Check that only one order was created
@@ -93,7 +93,7 @@ async def test_complete_order_lifecycle():
                 print(f"   - {order.order_id}: {order.status}")
 
         # Test 3: Order Tracking
-        print("\n📋 TEST 3: Order Tracking and Result Checking")
+        print("\nTEST 3: Order Tracking and Result Checking")
         print("-" * 50)
 
         # Immediate check
@@ -107,7 +107,7 @@ async def test_complete_order_lifecycle():
             return
 
         # Test 4: Event-Based Order Completion Monitoring
-        print("\n📋 TEST 4: Event-Based Order Completion")
+        print("\nTEST 4: Event-Based Order Completion")
         print("-" * 50)
 
         # Set up event callback to detect completion
@@ -129,7 +129,7 @@ async def test_complete_order_lifecycle():
         client.add_event_callback("order_closed", on_order_closed)
 
         # Test 5: Wait for Trade Completion
-        print("\n📋 TEST 5: Waiting for Trade Completion")
+        print("\nTEST 5: Waiting for Trade Completion")
         print("-" * 50)
 
         print(
@@ -183,7 +183,7 @@ async def test_complete_order_lifecycle():
                 # Check if status indicates completion but no profit yet
                 elif result.status in ["win", "lose", "closed"]:
                     print(
-                        f"   📊 Order marked as {result.status} but no profit data yet..."
+                        f"   Order marked as {result.status} but no profit data yet..."
                     )
 
             else:
@@ -193,7 +193,7 @@ async def test_complete_order_lifecycle():
             await asyncio.sleep(2)  # Check every 2 seconds
 
         # Test 6: Event vs Polling Comparison
-        print("\n📋 TEST 6: Event vs Polling Results")
+        print("\nTEST 6: Event vs Polling Results")
         print("-" * 50)
 
         # Check if we completed via event callback
@@ -215,18 +215,18 @@ async def test_complete_order_lifecycle():
             print("Order not found via polling")
 
         # Test 7: Final System State
-        print("\n📋 TEST 7: Final System State")
+        print("\nTEST 7: Final System State")
         print("-" * 50)
 
         # Check final counts
         final_active_orders = await client.get_active_orders()
-        print(f"📊 Final active orders: {len(final_active_orders)}")
+        print(f"Final active orders: {len(final_active_orders)}")
 
         for order in final_active_orders:
             print(f"   Active: {order.order_id} - {order.status}")
 
         # Show test summary
-        print("\n📋 TEST SUMMARY")
+        print("\nTEST SUMMARY")
         print("=" * 60)
 
         tests_passed = 0

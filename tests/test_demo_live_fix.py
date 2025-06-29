@@ -68,7 +68,7 @@ async def test_demo_live_fix():
     print(f"    Expected: 0, Got: {parsed_raw_live['isDemo']}")
 
     # Test 5: Region selection based on demo mode
-    print("\n5️⃣ Test: Region selection logic")
+    print("\nTest: Region selection logic")
 
     # Import regions to check the logic
     from pocketoptionapi_async.constants import REGIONS

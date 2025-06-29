@@ -34,7 +34,7 @@ async def test_demo_live_connection():
             print("   Connection failed")
 
     except asyncio.TimeoutError:
-        print("   ⏰ Connection timeout (expected with test credentials)")
+        print("   Connection timeout (expected with test credentials)")
     except Exception as e:
         print(f"    Connection error: {e}")
 
@@ -57,7 +57,7 @@ async def test_demo_live_connection():
             print("   Connection failed")
 
     except asyncio.TimeoutError:
-        print("   ⏰ Connection timeout (expected with test credentials)")
+        print("   Connection timeout (expected with test credentials)")
     except Exception as e:
         print(f"    Connection error: {e}")
 

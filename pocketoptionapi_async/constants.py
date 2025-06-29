@@ -1,11 +1,31 @@
 """
-Constants and configuration for the PocketOption API
+Constants and configuration for the PocketOption API.
+This module centralizes various configuration settings, including asset mappings,
+WebSocket region URLs, timeframes, connection parameters, API limits, and default headers.
+It also provides utility classes for managing regions and selecting random user agents.
 """
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 import random
 
-# Asset mappings with their corresponding IDs
+# List of various user agents to rotate, improving anonymity and reducing detection risk.
+# These user agents represent different browsers and operating systems.
+USER_AGENTS: List[str] = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4.1 Safari/605.1.15",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:125.0) Gecko/20100101 Firefox/125.0",
+    "Mozilla/5.0 (X11; Linux x86_64; rv:125.0) Gecko/20100101 Firefox/125.0",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (iPad; CPU OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36",
+]
+
+
+# Asset mappings with their corresponding IDs.
+# This dictionary provides a lookup for tradable assets on the PocketOption platform,
+# including Forex pairs, commodities, cryptocurrencies, stock indices, and individual stocks.
 ASSETS: Dict[str, int] = {
     # Major Forex Pairs
     "EURUSD": 1,
@@ -139,11 +159,13 @@ ASSETS: Dict[str, int] = {
 }
 
 
-# WebSocket regions with their URLs
+# WebSocket regions with their URLs.
+# This class provides methods to access all, specific, or demo region URLs,
+# with an option to randomize the order for load balancing or avoiding connection issues.
 class Regions:
-    """WebSocket region endpoints"""
+    """WebSocket region endpoints for PocketOption."""
 
-    _REGIONS = {
+    _REGIONS: Dict[str, str] = {
         "EUROPA": "wss://api-eu.po.market/socket.io/?EIO=4&transport=websocket",
         "SEYCHELLES": "wss://api-sc.po.market/socket.io/?EIO=4&transport=websocket",
         "HONGKONG": "wss://api-hk.po.market/socket.io/?EIO=4&transport=websocket",
@@ -167,35 +189,61 @@ class Regions:
 
     @classmethod
     def get_all(cls, randomize: bool = True) -> List[str]:
-        """Get all region URLs"""
+        """
+        Retrieves all available WebSocket URLs.
+
+        Args:
+            randomize: If True, the list of URLs will be shuffled randomly.
+
+        Returns:
+            List[str]: A list of WebSocket URLs.
+        """
         urls = list(cls._REGIONS.values())
         if randomize:
-            random.shuffle(urls)
+            random.shuffle(urls)  # Randomize order for distribution or fallback
         return urls
 
     @classmethod
     def get_all_regions(cls) -> Dict[str, str]:
-        """Get all regions as a dictionary"""
-        return cls._REGIONS.copy()
+        """
+        Retrieves all region names and their corresponding URLs.
 
-    from typing import Optional
+        Returns:
+            Dict[str, str]: A dictionary mapping region names to their WebSocket URLs.
+        """
+        return cls._REGIONS.copy()
 
     @classmethod
     def get_region(cls, region_name: str) -> Optional[str]:
-        """Get specific region URL"""
+        """
+        Retrieves the WebSocket URL for a specific region.
+
+        Args:
+            region_name: The name of the region (case-insensitive, e.g., "EUROPA", "DEMO").
+
+        Returns:
+            Optional[str]: The WebSocket URL for the specified region, or None if not found.
+        """
         return cls._REGIONS.get(region_name.upper())
 
     @classmethod
     def get_demo_regions(cls) -> List[str]:
-        """Get demo region URLs"""
-        return [url for name, url in cls._REGIONS.items() if "DEMO" in name]
+        """
+        Retrieves all WebSocket URLs specifically designated for demo accounts.
+
+        Returns:
+            List[str]: A list of demo account WebSocket URLs.
+        """
+        return [url for name, url in cls._REGIONS.items() if "DEMO" in name.upper()]
 
 
-# Global constants
+# Global instance of Regions for easy access throughout the application.
 REGIONS = Regions()
 
-# Timeframes (in seconds)
-TIMEFRAMES = {
+# Timeframes for candlestick data in seconds.
+# This dictionary maps common timeframe abbreviations (e.g., "1m" for 1 minute)
+# to their equivalent duration in seconds, as required by the API.
+TIMEFRAMES: Dict[str, int] = {
     "1m": 60,
     "5m": 300,
     "15m": 900,
@@ -206,28 +254,34 @@ TIMEFRAMES = {
     "1w": 604800,
 }
 
-# Connection settings
-CONNECTION_SETTINGS = {
-    "ping_interval": 20,  # seconds
-    "ping_timeout": 10,  # seconds
-    "close_timeout": 10,  # seconds
-    "max_reconnect_attempts": 5,
-    "reconnect_delay": 5,  # seconds
-    "message_timeout": 30,  # seconds
+# Connection settings for the WebSocket client.
+# These parameters control the behavior of the WebSocket connection,
+# including ping intervals, timeouts, and reconnection strategies.
+CONNECTION_SETTINGS: Dict[str, int] = {
+    "ping_interval": 20,  # seconds: how often to send a ping frame to keep connection alive
+    "ping_timeout": 10,  # seconds: how long to wait for a pong response before considering connection dead
+    "close_timeout": 10,  # seconds: timeout for the WebSocket close handshake
+    "max_reconnect_attempts": 5,  # Maximum number of times to attempt reconnection on failure
+    "reconnect_delay": 5,  # seconds: initial delay before attempting a reconnect
+    "message_timeout": 30,  # seconds: timeout for receiving a single message
 }
 
-# API Limits
-API_LIMITS = {
-    "min_order_amount": 1.0,
-    "max_order_amount": 50000.0,
-    "min_duration": 5,  # seconds
-    "max_duration": 43200,  # 12 hours in seconds
-    "max_concurrent_orders": 10,
-    "rate_limit": 100,  # requests per minute
+# API Limits for trading operations.
+# These define constraints on order amounts, durations, and API request rates
+# to ensure compliance with platform rules and prevent abuse.
+API_LIMITS: Dict[str, float] = {
+    "min_order_amount": 1.0,  # Minimum amount for a single trade
+    "max_order_amount": 50000.0,  # Maximum amount for a single trade
+    "min_duration": 5,  # seconds: Minimum duration for an option trade
+    "max_duration": 43200,  # 12 hours in seconds: Maximum duration for an option trade
+    "max_concurrent_orders": 10,  # Maximum number of open orders at any given time
+    "rate_limit": 100,  # requests per minute: General API request rate limit
 }
 
-# Default headers
-DEFAULT_HEADERS = {
+# Default headers to be sent with WebSocket connection requests.
+# The User-Agent is dynamically selected from a list to mimic different browsers,
+# which can help in avoiding detection or specific server-side filtering.
+DEFAULT_HEADERS: Dict[str, str] = {
     "Origin": "https://pocketoption.com",
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "User-Agent": random.choice(USER_AGENTS),  # Selects a random User-Agent string
 }

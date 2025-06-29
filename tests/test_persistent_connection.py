@@ -52,14 +52,14 @@ async def test_persistent_connection():
             auto_reconnect=True,  # But with auto-reconnect
         )
 
-        print("📊 Connecting with regular mode...")
+        print("Connecting with regular mode...")
         success = await client_regular.connect()
 
         if success:
             print(" Regular connection established")
 
             # Monitor for 30 seconds
-            print("📊 Monitoring regular connection for 30 seconds...")
+            print("Monitoring regular connection for 30 seconds...")
             for i in range(30):
                 await asyncio.sleep(1)
 
@@ -112,14 +112,14 @@ async def test_persistent_connection():
         client_persistent.add_event_callback("reconnected", on_reconnected)
         client_persistent.add_event_callback("authenticated", on_authenticated)
 
-        print("📊 Connecting with persistent mode...")
+        print("Connecting with persistent mode...")
         success = await client_persistent.connect()
 
         if success:
             print(" Persistent connection established with keep-alive active")
 
             # Monitor for 60 seconds to see keep-alive in action
-            print("📊 Monitoring persistent connection for 60 seconds...")
+            print("Monitoring persistent connection for 60 seconds...")
             print("   (Watch for automatic pings every 20 seconds)")
 
             for i in range(60):
@@ -144,7 +144,7 @@ async def test_persistent_connection():
 
             # Show final statistics
             final_stats = client_persistent.get_connection_stats()
-            print("\n📊 Final Connection Statistics:")
+            print("\nFinal Connection Statistics:")
             print(f"   Total connections: {final_stats.get('total_connections', 0)}")
             print(
                 f"   Successful connections: {final_stats.get('successful_connections', 0)}"
@@ -156,7 +156,7 @@ async def test_persistent_connection():
             print(f"   Last ping: {final_stats.get('last_ping_time', 'None')}")
             print(f"   Available regions: {final_stats.get('available_regions', 0)}")
 
-            print(f"\n📋 Connection Events ({len(connection_events)} total):")
+            print(f"\nConnection Events ({len(connection_events)} total):")
             for event in connection_events[-5:]:  # Show last 5 events
                 print(f"   • {event}")
 
@@ -189,14 +189,14 @@ async def test_persistent_connection():
                 auto_reconnect=True,
             )
 
-            print("📊 Establishing resilient connection...")
+            print("Establishing resilient connection...")
             success = await resilience_client.connect()
 
             if success:
                 print(" Resilient connection established")
 
                 # Monitor for 2 minutes
-                print("📊 Monitoring resilient connection for 2 minutes...")
+                print("Monitoring resilient connection for 2 minutes...")
                 for i in range(120):
                     await asyncio.sleep(1)
 
@@ -227,7 +227,7 @@ async def test_persistent_connection():
     print()
     print("🎉 All persistent connection tests completed!")
     print()
-    print("📋 Summary of Enhanced Features:")
+    print("Summary of Enhanced Features:")
     print(" Persistent connections with automatic keep-alive")
     print(" Automatic reconnection with multiple region fallback")
     print(" Background ping/pong handling (20-second intervals)")

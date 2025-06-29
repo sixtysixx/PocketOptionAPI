@@ -69,7 +69,7 @@ def get_pocketoption_ssid():
         # Regex to capture the entire "42[\"auth\",{...}]" string.
         # This pattern is designed to be robust and capture the full authentication message,
         # regardless of the specific content of the 'session' field (e.g., simple string or serialized PHP array).
-        ssid_pattern = r'(42\["auth",\{"session":"[^"]+","isDemo":\d+,"uid":\d+,"platform":\d+,"isFastHistory":(?:true|false)\}\])'
+        ssid_pattern = r'(42\["auth",\{"session":"((?:[^"\\]|\\.)*?)","isDemo":\d+,"uid":\d+,"platform":\d+,"isFastHistory":(?:true|false),"isOptimized":(?:true|false)\}\])'
 
         logger.info(f"Navigating to login page: {login_url}")
         driver.get(login_url)
