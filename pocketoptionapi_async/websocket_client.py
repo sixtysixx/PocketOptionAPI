@@ -123,27 +123,26 @@ class AsyncWebSocketClient:
             message: The raw WebSocket message string containing payout data.
         """
         try:
-            # The message starts with "[[5," and is a JSON string.
-            # We need to parse it as JSON.
-            # Example: [[5, ["5", "#AAPL", "Apple", "stock", 2, 50, ...]]]
-            # The structure is a list containing a list, where the first element
-            # of the inner list is '5' (indicating payout data), and the rest is the data.
+            # The message is expected to be a JSON string like '[[5, ["5", "#AAPL", ...]]]'
+            # Parse the entire message as JSON.
+            # Example: parsed_full_message = [5, ["5", "#AAPL", "Apple", "stock", 2, 50, ...]]
+            parsed_full_message: List[Any] = json.loads(message)
 
-            # Find the start and end of the actual JSON array data
-            json_start_index = message.find("[", message.find("[") + 1)
-            json_end_index = message.rfind("]")
-
-            if json_start_index == -1 or json_end_index == -1:
+            # Ensure the message has the expected structure: a list with at least two elements,
+            # where the first element is 5 (Socket.IO message type for data) and the second is the actual data.
+            if not (isinstance(parsed_full_message, list) and len(parsed_full_message) >= 2 and parsed_full_message[0] == 5):
                 logger.warning(
-                    f"Could not find valid JSON array in payout message: {message[:100]}..."
+                    f"Unexpected format for payout message, expected [5, ...]: {message[:100]}..."
                 )
                 return
 
-            # Extract the inner JSON string that represents the array of arrays
-            json_str = message[json_start_index : json_end_index + 1]
+            # The actual payout data is the second element of the outer list.
+            data: List[List[Any]] = parsed_full_message[1]
 
-            # Parse the extracted JSON string
-            data: List[List[Any]] = json.loads(json_str)
+            # Ensure the extracted data is a list of lists (each inner list represents an asset's payout info).
+            if not isinstance(data, list):
+                logger.warning(f"Payout data is not a list of assets: {data}")
+                return
 
             # Iterate through each asset's payout information
             for asset_data in data:

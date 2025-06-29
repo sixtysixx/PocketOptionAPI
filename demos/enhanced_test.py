@@ -47,14 +47,16 @@ class EnhancedAPITester:
             try:
                 await client.connect()
                 success = client.is_connected
-            except Exception as e:
+            except Exception:
                 success = False
 
             if success:
                 logger.success(" Connection successful with monitoring")
 
                 # Get connection status
-                logger.info(f"Connection Status: {'Connected' if client.is_connected else 'Disconnected'}")
+                logger.info(
+                    f"Connection Status: {'Connected' if client.is_connected else 'Disconnected'}"
+                )
 
                 # Test some operations
                 await self.test_monitored_operations(client)
@@ -143,9 +145,7 @@ class EnhancedAPITester:
 
         async def create_and_test_client(client_id: int):
             """Create client and perform operations"""
-            client = AsyncPocketOptionClient(
-                ssid=self.session_id, is_demo=self.is_demo
-            )
+            client = AsyncPocketOptionClient(ssid=self.session_id, is_demo=self.is_demo)
 
             start_time = time.time()
 

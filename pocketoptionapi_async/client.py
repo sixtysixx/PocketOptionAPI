@@ -96,6 +96,9 @@ class AsyncPocketOptionClient:
         self._candles_cache: Dict[str, List[Candle]] = {}
         self._server_time: Optional[ServerTime] = None
         self._event_callbacks: Dict[str, List[Callable]] = defaultdict(list)
+        # Event for signaling balance updates
+        self._balance_updated_event = asyncio.Event() # Added for reliable balance fetching
+
         # Setup event handlers for websocket messages
         self._setup_event_handlers()
 
@@ -258,6 +261,7 @@ class AsyncPocketOptionClient:
         self._keep_alive_manager = ConnectionKeepAlive(complete_ssid, self.is_demo)
 
         # Add event handlers
+        # Modified to pass data to the client's internal handlers
         self._keep_alive_manager.add_event_handler(
             "connected", self._on_keep_alive_connected
         )
@@ -288,6 +292,8 @@ class AsyncPocketOptionClient:
             "stream_update", self._on_stream_update
         )
         self._keep_alive_manager.add_event_handler("json_data", self._on_json_data)
+        self._keep_alive_manager.add_event_handler("payout_update", self._on_payout_update)
+
 
         # Connect with keep-alive
         success = await self._keep_alive_manager.connect_with_keep_alive(regions)
@@ -362,6 +368,7 @@ class AsyncPocketOptionClient:
         self._is_persistent = False
         self._balance = None
         self._orders.clear()
+        self._balance_updated_event.clear() # Clear event on disconnect
 
         logger.info("Disconnected successfully")
 
@@ -375,17 +382,19 @@ class AsyncPocketOptionClient:
         if not self.is_connected:
             raise ConnectionError("Not connected to PocketOption")
 
-        # Request balance update if needed
-        if (
-            not self._balance
-            or (datetime.now() - self._balance.last_updated).seconds > 60
-        ):
-            await self._request_balance_update()
+        # Always request to ensure freshest data, then wait for it.
+        self._balance_updated_event.clear() # Clear event before requesting
+        await self._request_balance_update()
 
-            # Wait a bit for balance to be received
-            await asyncio.sleep(1)
+        try:
+            # Wait for the balance to be updated, with a timeout
+            await asyncio.wait_for(self._balance_updated_event.wait(), timeout=10.0) # Increased timeout
+        except asyncio.TimeoutError:
+            logger.warning("Timeout waiting for balance update.")
+            if not self._balance: # If still no balance after timeout
+                raise PocketOptionError("Balance data not available after timeout")
 
-        if not self._balance:
+        if not self._balance: # Fallback check, should be set by now
             raise PocketOptionError("Balance data not available")
 
         return self._balance
@@ -771,8 +780,13 @@ class AsyncPocketOptionClient:
 
     async def _initialize_data(self) -> None:
         """Initialize client data after connection"""
-        # Request initial balance
+        # Request initial balance and wait for it
+        self._balance_updated_event.clear()
         await self._request_balance_update()
+        try:
+            await asyncio.wait_for(self._balance_updated_event.wait(), timeout=10.0) # Increased timeout
+        except asyncio.TimeoutError:
+            logger.warning("Timeout waiting for initial balance during initialization.")
 
         # Setup time synchronization
         await self._setup_time_sync()
@@ -1190,6 +1204,7 @@ class AsyncPocketOptionClient:
             if self.enable_logging:
                 logger.info(f"Balance updated: ${balance.balance:.2f}")
             await self._emit_event("balance_updated", balance)
+            self._balance_updated_event.set() # Signal that balance is updated
         except Exception as e:
             if self.enable_logging:
                 logger.error(f"Failed to parse balance data: {e}")
@@ -1197,7 +1212,7 @@ class AsyncPocketOptionClient:
     async def _on_balance_data(self, data: Dict[str, Any]) -> None:
         """Handle balance data message"""
         # This is similar to balance_updated but for different message format
-        await self._on_balance_updated(data)
+        await self._on_balance_updated(data) # This will now also set the event
 
     async def _on_order_opened(self, data: Dict[str, Any]) -> None:
         """Handle order opened event"""
@@ -1315,12 +1330,14 @@ class AsyncPocketOptionClient:
                         )
                         candles.append(candle)
                     elif isinstance(item, (list, tuple)) and len(item) >= 6:
+                        # Adjusted indices based on common PocketOption stream format for candles:
+                        # [timestamp, open, close, high, low, volume]
                         candle = Candle(
                             timestamp=datetime.fromtimestamp(item[0]),
                             open=float(item[1]),
-                            high=float(item[3]),
-                            low=float(item[4]),
-                            close=float(item[2]),
+                            high=float(item[3]), # High is at index 3
+                            low=float(item[4]),  # Low is at index 4
+                            close=float(item[2]), # Close is at index 2
                             volume=float(item[5]) if len(item) > 5 else 0.0,
                             asset=asset,
                             timeframe=timeframe,
@@ -1332,9 +1349,9 @@ class AsyncPocketOptionClient:
                 logger.error(f"Error parsing stream candles: {e}")
         return candles
 
-    async def _on_keep_alive_connected(self):
+    async def _on_keep_alive_connected(self, data: Dict[str, Any]) -> None: # Added data parameter
         """Handle event when keep-alive connection is established"""
-        logger.info("Keep-alive connection established")
+        logger.info(f"Keep-alive connection established: {data.get('url')}") # Use data for logging
 
         # Initialize data after connection
         await self._initialize_data()
@@ -1343,15 +1360,15 @@ class AsyncPocketOptionClient:
         for callback in self._event_callbacks.get("connected", []):
             try:
                 if asyncio.iscoroutinefunction(callback):
-                    await callback()
+                    await callback(data) # Pass data to the higher-level callback
                 else:
-                    callback()
+                    callback(data)
             except Exception as e:
                 logger.error(f"Error in connected callback: {e}")
 
-    async def _on_keep_alive_reconnected(self):
+    async def _on_keep_alive_reconnected(self, data: Dict[str, Any]) -> None: # Added data parameter
         """Handle event when keep-alive connection is re-established"""
-        logger.info("Keep-alive connection re-established")
+        logger.info(f"Keep-alive connection re-established: {data.get('url')}") # Use data for logging
 
         # Re-initialize data
         await self._initialize_data()
@@ -1360,9 +1377,9 @@ class AsyncPocketOptionClient:
         for callback in self._event_callbacks.get("reconnected", []):
             try:
                 if asyncio.iscoroutinefunction(callback):
-                    await callback()
+                    await callback(data) # Pass data to the higher-level callback
                 else:
-                    callback()
+                    callback(data)
             except Exception as e:
                 logger.error(f"Error in reconnected callback: {e}")
 
@@ -1392,6 +1409,11 @@ class AsyncPocketOptionClient:
                         await self._on_order_closed(event_data)
                     elif event_type == "stream_update":
                         await self._on_stream_update(event_data)
+                    elif event_type == "payout_update": # Added payout_update handler
+                        await self._emit_event("payout_update", event_data)
+                # Handle general JSON objects that might not be in the ["event_type", data] format
+                elif isinstance(data, dict):
+                    await self._on_json_data(data) # Forward to general JSON data handler
             except Exception as e:
                 logger.error(f"Error processing keep-alive message: {e}")
 
