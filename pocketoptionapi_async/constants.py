@@ -165,8 +165,6 @@ ASSETS: Dict[str, int] = {
 class Regions:
     """WebSocket region endpoints for PocketOption."""
 
-    # Updated _REGIONS to include chat-po.site and events-po.com from the HAR file,
-    # representing other Socket.IO endpoints used by PocketOption.
     _REGIONS: Dict[str, str] = {
         "EUROPA": "wss://api-eu.po.market/socket.io/?EIO=4&transport=websocket",
         "SEYCHELLES": "wss://api-sc.po.market/socket.io/?EIO=4&transport=websocket",
@@ -187,9 +185,6 @@ class Regions:
         "SERVER3": "wss://api-c.po.market/socket.io/?EIO=4&transport=websocket",
         "ASIA": "wss://api-asia.po.market/socket.io/?EIO=4&transport=websocket",
         "SERVER4": "wss://api-us-south.po.market/socket.io/?EIO=4&transport=websocket",
-        # Added endpoints from the HAR file
-        "CHAT_PO": "wss://chat-po.site/cabinet-client/socket.io/?EIO=4&transport=websocket",
-        "EVENTS_PO": "wss://events-po.com/socket.io/?EIO=4&transport=websocket",
     }
 
     @classmethod

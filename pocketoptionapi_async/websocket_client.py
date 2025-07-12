@@ -1,8 +1,8 @@
 import asyncio
-import json
 from typing import Optional, Callable, Dict, Any, List
-from datetime import datetime, timedelta
+from datetime import datetime
 import socketio
+from socketio.exceptions import ConnectionError
 from loguru import logger
 
 from .models import ConnectionInfo, ConnectionStatus, ServerTime
@@ -109,11 +109,11 @@ class AsyncWebSocketClient:
                     logger.success(f"Successfully connected to {region} via Socket.IO")
                     await self._emit_event("connected", {"url": url, "region": region})
                     return True
-
-            except socketio.exceptions.ConnectionError as e:
+            except ConnectionError as e:
                 logger.warning(f"Socket.IO connection failed to {url}: {e}")
                 # This error often indicates a failed handshake or refusal
                 if self.sio.connected:
+                    await self.sio.disconnect()  # Ensure cleanup
                     await self.sio.disconnect()  # Ensure cleanup
             except asyncio.TimeoutError:
                 logger.warning(f"Connection attempt to {url} timed out.")
@@ -180,9 +180,9 @@ class AsyncWebSocketClient:
         if (
             not self.connection_info
         ):  # If connection_info hasn't been set yet (first connect)
-            region = self._extract_region_from_url(self.sio.url)
+            region = self._extract_region_from_url(self.sio.eio.url)
             self.connection_info = ConnectionInfo(
-                url=self.sio.url,
+                url=self.sio.eio.current_url,
                 region=region,
                 status=ConnectionStatus.CONNECTED,
                 connected_at=datetime.now(),
@@ -228,7 +228,7 @@ class AsyncWebSocketClient:
                 reconnect_attempts=attempt_count,
             )
         await self._emit_event(
-            "reconnected", {"attempt": attempt_count, "url": self.sio.url}
+            "reconnected", {"attempt": attempt_count, "url": self.connection_info.url if self.connection_info else None}
         )
 
     async def _on_sio_connect_error(self, data):
