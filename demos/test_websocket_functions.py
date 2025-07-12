@@ -8,11 +8,13 @@ from dotenv import load_dotenv
 
 # Add the parent directory to the Python path to allow importing pocketoptionapi_async
 # This makes the 'pocketoptionapi_async' package discoverable when running from 'demos'
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Load environment variables from .env file (expected in the project root)
 # The `dotenv_path` argument explicitly points to the .env file in the parent directory.
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '.env'))
+load_dotenv(
+    dotenv_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".env")
+)
 
 # Configure loguru for clear output
 logger.remove()
@@ -50,7 +52,9 @@ except ImportError as e:
     logger.info(
         "Please ensure your project structure is 'project_root/pocketoptionapi_async/' and 'project_root/demos/test_websocket_functions.py'."
     )
-    logger.info("The script attempts to add the parent directory to sys.path for imports.")
+    logger.info(
+        "The script attempts to add the parent directory to sys.path for imports."
+    )
     exit(1)
 
 
@@ -67,6 +71,7 @@ TEST_SSID = os.getenv(
 # --- Event Handlers for Testing ---
 # These functions will be called when corresponding events are emitted by the clients.
 # They primarily log the event and its data to confirm that the event system works.
+
 
 async def on_connected(data: Dict[str, Any]):
     """Callback for 'connected' event."""
@@ -136,9 +141,7 @@ async def on_auth_error(data: Dict[str, Any]):
 
 async def on_payout_update(data: Dict[str, Any]):
     """Callback for 'payout_update' event."""
-    logger.info(
-        f"Event: Payout Update for {data.get('symbol')}: {data.get('payout')}%"
-    )
+    logger.info(f"Event: Payout Update for {data.get('symbol')}: {data.get('payout')}%")
 
 
 async def on_message_received(data: Dict[str, Any]):
@@ -155,6 +158,7 @@ async def on_max_reconnects_reached(data: Dict[str, Any]):
 
 
 # --- Test Functions ---
+
 
 async def test_async_websocket_client():
     """
@@ -184,7 +188,9 @@ async def test_async_websocket_client():
         # Use a demo region URL for testing
         demo_urls = REGIONS.get_demo_regions()
         if not demo_urls:
-            logger.error("No demo regions found in constants.py. Cannot test connection.")
+            logger.error(
+                "No demo regions found in constants.py. Cannot test connection."
+            )
             return
 
         # Try connecting to the first demo URL
@@ -201,8 +207,10 @@ async def test_async_websocket_client():
             # Test sending a message to trigger stream update (e.g., change symbol)
             # This might trigger 'stream_update' and 'candles_received' events
             logger.info("Testing send_message: Requesting EURUSD_otc stream...")
-            await client.send_message('42["changeSymbol",{"asset":"EURUSD_otc","period":60}]')
-            await asyncio.sleep(5) # Give time for stream data
+            await client.send_message(
+                '42["changeSymbol",{"asset":"EURUSD_otc","period":60}]'
+            )
+            await asyncio.sleep(5)  # Give time for stream data
 
             # Test remove_event_handler
             logger.info("Testing remove_event_handler...")
@@ -210,7 +218,9 @@ async def test_async_websocket_client():
             # This won't be visibly testable unless we reconnect, but ensures the method works.
 
         else:
-            logger.warning("AsyncWebSocketClient failed to connect. Skipping message tests.")
+            logger.warning(
+                "AsyncWebSocketClient failed to connect. Skipping message tests."
+            )
 
     except Exception as e:
         logger.error(f"Error during AsyncWebSocketClient connection/testing: {e}")
@@ -219,7 +229,9 @@ async def test_async_websocket_client():
         # Test disconnection
         logger.info("Attempting to disconnect AsyncWebSocketClient...")
         await client.disconnect()
-        logger.info(f"AsyncWebSocketClient connected status after disconnect: {client.is_connected}")
+        logger.info(
+            f"AsyncWebSocketClient connected status after disconnect: {client.is_connected}"
+        )
         logger.info("AsyncWebSocketClient test finished.")
         await asyncio.sleep(1)  # Small delay
 
@@ -251,20 +263,26 @@ async def test_connection_keep_alive():
 
         if connected:
             # Test sending a message
-            logger.info("Testing send_message via ConnectionKeepAlive: Requesting balance...")
+            logger.info(
+                "Testing send_message via ConnectionKeepAlive: Requesting balance..."
+            )
             await keep_alive.send_message('42["getBalance"]')
             await asyncio.sleep(2)  # Give time for response
 
             # Test getting connection stats
             stats = keep_alive.get_connection_stats()
-            logger.info(f"ConnectionKeepAlive Stats: {json.dumps(stats, indent=2, default=str)}")
+            logger.info(
+                f"ConnectionKeepAlive Stats: {json.dumps(stats, indent=2, default=str)}"
+            )
 
             # Simulate a brief run time for persistent connection
             logger.info("Allowing persistent connection to run for 10 seconds...")
             await asyncio.sleep(10)
 
         else:
-            logger.warning("ConnectionKeepAlive failed to connect. Skipping message/stats tests.")
+            logger.warning(
+                "ConnectionKeepAlive failed to connect. Skipping message/stats tests."
+            )
 
     except Exception as e:
         logger.error(f"Error during ConnectionKeepAlive connection/testing: {e}")
@@ -273,9 +291,11 @@ async def test_connection_keep_alive():
         # Test stopping persistent connection
         logger.info("Attempting to stop persistent connection...")
         await keep_alive.stop_persistent_connection()
-        logger.info(f"ConnectionKeepAlive connected status after stop: {keep_alive.is_connected}")
+        logger.info(
+            f"ConnectionKeepAlive connected status after stop: {keep_alive.is_connected}"
+        )
         logger.info("ConnectionKeepAlive test finished.")
-        await asyncio.sleep(1) # Small delay
+        await asyncio.sleep(1)  # Small delay
 
 
 async def test_async_pocket_option_client_with_websocket_mode():
@@ -283,7 +303,9 @@ async def test_async_pocket_option_client_with_websocket_mode():
     Tests the high-level AsyncPocketOptionClient in its default (non-persistent) WebSocket mode.
     """
     logger.info("\n--- Testing AsyncPocketOptionClient (WebSocket Mode) ---")
-    client = AsyncPocketOptionClient(TEST_SSID, is_demo=True, persistent_connection=False, auto_reconnect=True)
+    client = AsyncPocketOptionClient(
+        TEST_SSID, is_demo=True, persistent_connection=False, auto_reconnect=True
+    )
 
     # Register high-level event callbacks
     client.add_event_callback("connected", on_connected)
@@ -295,12 +317,14 @@ async def test_async_pocket_option_client_with_websocket_mode():
     client.add_event_callback("stream_update", on_stream_update)
     client.add_event_callback("candles_received", on_candles_received)
     client.add_event_callback("message_received", on_message_received)
-    client.add_event_callback("reconnected", on_reconnected) # For auto_reconnect
+    client.add_event_callback("reconnected", on_reconnected)  # For auto_reconnect
 
     try:
         logger.info("Attempting to connect AsyncPocketOptionClient (WebSocket Mode)...")
         connected = await client.connect()
-        logger.info(f"AsyncPocketOptionClient (WebSocket Mode) connected status: {connected}")
+        logger.info(
+            f"AsyncPocketOptionClient (WebSocket Mode) connected status: {connected}"
+        )
         logger.info(f"Is client connected (property): {client.is_connected}")
 
         if connected:
@@ -311,15 +335,24 @@ async def test_async_pocket_option_client_with_websocket_mode():
             await asyncio.sleep(1)
 
             # Test place_order (will likely fail without real market conditions)
-            logger.info("Testing place_order (may fail without real market conditions)...")
+            logger.info(
+                "Testing place_order (may fail without real market conditions)..."
+            )
             try:
                 order_result = await client.place_order(
-                    asset="EURUSD_otc", amount=1.0, direction=OrderDirection.CALL, duration=60
+                    asset="EURUSD_otc",
+                    amount=1.0,
+                    direction=OrderDirection.CALL,
+                    duration=60,
                 )
-                logger.info(f"Order Placement Attempt: {order_result.order_id}, Status: {order_result.status.value}")
+                logger.info(
+                    f"Order Placement Attempt: {order_result.order_id}, Status: {order_result.status.value}"
+                )
                 # Wait for order result
                 await asyncio.sleep(5)
-                check_res = await client.check_win(order_result.order_id, max_wait_time=10)
+                check_res = await client.check_win(
+                    order_result.order_id, max_wait_time=10
+                )
                 logger.info(f"Order Check Result: {check_res}")
 
             except OrderError as oe:
@@ -331,7 +364,9 @@ async def test_async_pocket_option_client_with_websocket_mode():
             # Test get_candles
             logger.info("Testing get_candles...")
             try:
-                candles = await client.get_candles(asset="EURUSD_otc", timeframe="1m", count=5)
+                candles = await client.get_candles(
+                    asset="EURUSD_otc", timeframe="1m", count=5
+                )
                 logger.info(f"Received {len(candles)} candles for EURUSD_otc (1m)")
                 if candles:
                     logger.debug(f"First candle: {candles[0]}")
@@ -342,7 +377,9 @@ async def test_async_pocket_option_client_with_websocket_mode():
             # Test get_candles_dataframe
             logger.info("Testing get_candles_dataframe...")
             try:
-                df_candles = await client.get_candles_dataframe(asset="EURUSD_otc", timeframe="1m", count=5)
+                df_candles = await client.get_candles_dataframe(
+                    asset="EURUSD_otc", timeframe="1m", count=5
+                )
                 logger.info(f"Received {len(df_candles)} candles as DataFrame.")
                 if not df_candles.empty:
                     logger.debug(f"DataFrame head:\n{df_candles.head()}")
@@ -359,17 +396,25 @@ async def test_async_pocket_option_client_with_websocket_mode():
 
             # Test get_connection_stats
             stats = client.get_connection_stats()
-            logger.info(f"AsyncPocketOptionClient (WebSocket Mode) Stats: {json.dumps(stats, indent=2, default=str)}")
+            logger.info(
+                f"AsyncPocketOptionClient (WebSocket Mode) Stats: {json.dumps(stats, indent=2, default=str)}"
+            )
             await asyncio.sleep(1)
 
         else:
-            logger.warning("AsyncPocketOptionClient (WebSocket Mode) failed to connect. Skipping further tests.")
+            logger.warning(
+                "AsyncPocketOptionClient (WebSocket Mode) failed to connect. Skipping further tests."
+            )
 
     except Exception as e:
-        logger.error(f"Error during AsyncPocketOptionClient (WebSocket Mode) testing: {e}")
+        logger.error(
+            f"Error during AsyncPocketOptionClient (WebSocket Mode) testing: {e}"
+        )
 
     finally:
-        logger.info("Attempting to disconnect AsyncPocketOptionClient (WebSocket Mode)...")
+        logger.info(
+            "Attempting to disconnect AsyncPocketOptionClient (WebSocket Mode)..."
+        )
         await client.disconnect()
         logger.info("AsyncPocketOptionClient (WebSocket Mode) test finished.")
         await asyncio.sleep(1)
@@ -380,7 +425,9 @@ async def test_async_pocket_option_client_with_persistent_mode():
     Tests the high-level AsyncPocketOptionClient in its persistent connection mode.
     """
     logger.info("\n--- Testing AsyncPocketOptionClient (Persistent Mode) ---")
-    client = AsyncPocketOptionClient(TEST_SSID, is_demo=True, persistent_connection=True, auto_reconnect=True)
+    client = AsyncPocketOptionClient(
+        TEST_SSID, is_demo=True, persistent_connection=True, auto_reconnect=True
+    )
 
     # Register high-level event callbacks
     client.add_event_callback("connected", on_connected)
@@ -395,9 +442,13 @@ async def test_async_pocket_option_client_with_persistent_mode():
     client.add_event_callback("reconnected", on_reconnected)
 
     try:
-        logger.info("Attempting to connect AsyncPocketOptionClient (Persistent Mode)...")
+        logger.info(
+            "Attempting to connect AsyncPocketOptionClient (Persistent Mode)..."
+        )
         connected = await client.connect()
-        logger.info(f"AsyncPocketOptionClient (Persistent Mode) connected status: {connected}")
+        logger.info(
+            f"AsyncPocketOptionClient (Persistent Mode) connected status: {connected}"
+        )
         logger.info(f"Is client connected (property): {client.is_connected}")
 
         if connected:
@@ -408,14 +459,23 @@ async def test_async_pocket_option_client_with_persistent_mode():
             await asyncio.sleep(1)
 
             # Test place_order (will likely fail without real market conditions)
-            logger.info("Testing place_order (may fail without real market conditions)...")
+            logger.info(
+                "Testing place_order (may fail without real market conditions)..."
+            )
             try:
                 order_result = await client.place_order(
-                    asset="EURUSD_otc", amount=1.0, direction=OrderDirection.CALL, duration=60
+                    asset="EURUSD_otc",
+                    amount=1.0,
+                    direction=OrderDirection.CALL,
+                    duration=60,
                 )
-                logger.info(f"Order Placement Attempt: {order_result.order_id}, Status: {order_result.status.value}")
+                logger.info(
+                    f"Order Placement Attempt: {order_result.order_id}, Status: {order_result.status.value}"
+                )
                 await asyncio.sleep(5)
-                check_res = await client.check_win(order_result.order_id, max_wait_time=10)
+                check_res = await client.check_win(
+                    order_result.order_id, max_wait_time=10
+                )
                 logger.info(f"Order Check Result: {check_res}")
             except OrderError as oe:
                 logger.warning(f"Order placement failed as expected in test: {oe}")
@@ -426,7 +486,9 @@ async def test_async_pocket_option_client_with_persistent_mode():
             # Test get_candles
             logger.info("Testing get_candles...")
             try:
-                candles = await client.get_candles(asset="EURUSD_otc", timeframe="1m", count=5)
+                candles = await client.get_candles(
+                    asset="EURUSD_otc", timeframe="1m", count=5
+                )
                 logger.info(f"Received {len(candles)} candles for EURUSD_otc (1m)")
             except PocketOptionError as pe:
                 logger.warning(f"Failed to get candles: {pe}")
@@ -434,7 +496,9 @@ async def test_async_pocket_option_client_with_persistent_mode():
 
             # Test get_connection_stats
             stats = client.get_connection_stats()
-            logger.info(f"AsyncPocketOptionClient (Persistent Mode) Stats: {json.dumps(stats, indent=2, default=str)}")
+            logger.info(
+                f"AsyncPocketOptionClient (Persistent Mode) Stats: {json.dumps(stats, indent=2, default=str)}"
+            )
             await asyncio.sleep(1)
 
             # Allow persistent connection to run for a bit
@@ -442,13 +506,19 @@ async def test_async_pocket_option_client_with_persistent_mode():
             await asyncio.sleep(10)
 
         else:
-            logger.warning("AsyncPocketOptionClient (Persistent Mode) failed to connect. Skipping further tests.")
+            logger.warning(
+                "AsyncPocketOptionClient (Persistent Mode) failed to connect. Skipping further tests."
+            )
 
     except Exception as e:
-        logger.error(f"Error during AsyncPocketOptionClient (Persistent Mode) testing: {e}")
+        logger.error(
+            f"Error during AsyncPocketOptionClient (Persistent Mode) testing: {e}"
+        )
 
     finally:
-        logger.info("Attempting to disconnect AsyncPocketOptionClient (Persistent Mode)...")
+        logger.info(
+            "Attempting to disconnect AsyncPocketOptionClient (Persistent Mode)..."
+        )
         await client.disconnect()
         logger.info("AsyncPocketOptionClient (Persistent Mode) test finished.")
         await asyncio.sleep(1)

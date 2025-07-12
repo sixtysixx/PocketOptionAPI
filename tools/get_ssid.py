@@ -1,147 +1,252 @@
-import os
-import json
-import time
-import re
-import logging
-from typing import cast, List, Dict, Any
+import os  # For interacting with the file system (e.g., .env file).
+import json  # For parsing JSON data (though not directly used for capture now).
+import time  # For introducing a necessary delay for WebSocket communication.
+import re  # For using regular expressions to find the target auth message.
+import logging  # For providing structured, informative output.
+import argparse  # For parsing command-line arguments.
+from typing import Callable, Optional, List  # For type hinting to improve code clarity.
+
+# Selenium imports for web browser automation and waiting for conditions.
+from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, WebDriverException
+
+# Local import for the WebDriver setup.
+# Assumption: A 'driver.py' file exists with a 'get_driver' function.
 from driver import get_driver
 
-# Configure logging for this script to provide clear, structured output.
-# Logs will be directed to standard output, making them compatible with containerization
-# and centralized log collection systems.
+# Section: Logging Configuration
+# ------------------------------
+# Configure logging to output structured JSON for better traceability and analysis.
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.INFO,  # Set the minimum level of messages to log.
     format='{"timestamp": "%(asctime)s", "level": "%(levelname)s", "module": "%(name)s", "message": "%(message)s"}',
+    datefmt="%Y-%m-%d %H:%M:%S",  # Define the format for the timestamp.
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)  # Get a logger instance for this module.
 
 
-def save_to_env(key: str, value: str):
+# Section: Helper Functions
+# -------------------------
+
+
+def save_to_env(key: str, value: str) -> None:
     """
-    Saves or updates a key-value pair in the .env file.
-    If the key already exists, its value is updated. Otherwise, the new key-value pair is added.
+    Saves or updates a key-value pair in a .env file in the current directory.
 
     Args:
-        key: The environment variable key (e.g., "SSID").
-        value: The value to be associated with the key.
+        key (str): The environment variable key (e.g., "SSID").
+        value (str): The value to associate with the key.
     """
-    env_path = os.path.join(os.getcwd(), ".env")
-    lines = []
-    found = False
+    env_file_path = ".env"  # Define the path to the .env file.
+    env_content = {}  # Initialize a dictionary to hold environment variables.
 
-    # Read existing .env file content
-    if os.path.exists(env_path):
-        with open(env_path, "r") as f:
-            for line in f:
-                if line.strip().startswith(f"{key}="):
-                    # Update existing key
-                    lines.append(f'{key}="{value}"\n')
-                    found = True
-                else:
-                    lines.append(line)
+    # Read existing .env file if it exists.
+    if os.path.exists(env_file_path):
+        with open(env_file_path, "r") as f:  # Open the file for reading.
+            for line in f:  # Iterate over each line.
+                line = line.strip()  # Remove whitespace.
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)  # Split into key and value.
+                    env_content[k.strip()] = v.strip()  # Store in dictionary.
 
-    if not found:
-        # Add new key if not found
-        lines.append(f'{key}="{value}"\n')
+    # Update or add the new key-value pair.
+    env_content[key] = value
 
-    # Write updated content back to .env file
-    with open(env_path, "w") as f:
-        f.writelines(lines)
-    logger.info(f"Successfully saved {key} to .env file.")
+    # Write the updated contents back to the .env file.
+    with open(env_file_path, "w") as f:  # Open the file for writing.
+        for k, v in env_content.items():  # Iterate over the dictionary items.
+            f.write(f"{k}={v}\n")  # Write each key-value pair.
+    logger.info(f"Key '{key}' was successfully saved to {env_file_path}.")
 
 
-def get_pocketoption_ssid():
+def url_contains_safe(url: str) -> Callable[[WebDriver], bool]:
     """
-    Automates the process of logging into PocketOption, navigating to a specific cabinet page,
-    and then scraping WebSocket traffic to extract the session ID (SSID).
-    The extracted SSID is then saved to the .env file.
+    Creates a Selenium expected condition to safely check if the current URL contains a substring.
+
+    Args:
+        url (str): The substring to look for in the browser's current URL.
+
+    Returns:
+        Callable[[WebDriver], bool]: A predicate function for use with WebDriverWait.
     """
-    driver = None
+
+    def _predicate(driver: WebDriver) -> bool:
+        """The actual predicate function that WebDriverWait will execute."""
+        try:
+            # Safely access the current URL.
+            current_url = driver.current_url
+            # Return False if URL is None (e.g., window closed), otherwise check.
+            return current_url is not None and url in current_url
+        except WebDriverException:
+            # Handle cases where the driver or window is no longer available.
+            return False
+
+    return _predicate
+
+
+# Section: Core Logic
+# -------------------
+
+
+def get_pocketoption_ssid(
+    browser: str, login_timeout: int, wait_after_navigate: int
+) -> None:
+    """
+    Automates capturing the full PocketOption auth message using JavaScript injection.
+
+    Args:
+        browser (str): The browser to use (e.g., "chrome").
+        login_timeout (int): The max time in seconds to wait for manual login.
+        wait_after_navigate (int): The time in seconds to wait for WebSockets to communicate.
+    """
+    driver: Optional[WebDriver] = None  # Initialize driver for the finally block.
     try:
-        # Initialize the Selenium WebDriver using the helper function from driver.py.
-        # This ensures the browser profile is persistent for easier logins.
-        driver = get_driver("chrome")
-        login_url = "https://pocketoption.com/en/login"
-        cabinet_base_url = "https://pocketoption.com/en/cabinet"
-        target_cabinet_url = "https://pocketoption.com/en/cabinet/demo-quick-high-low/"
-        # Regex to capture the entire "42[\"auth\",{...}]" string.
-        # This pattern is designed to be robust and capture the full authentication message,
-        # regardless of the specific content of the 'session' field (e.g., simple string or serialized PHP array).
-        ssid_pattern = r'(42\["auth",\{"session":"((?:[^"\\]|\\.)*?)","isDemo":\d+,"uid":\d+,"platform":\d+,"isFastHistory":(?:true|false),"isOptimized":(?:true|false)\}\])'
+        # Initialize the Selenium WebDriver.
+        logger.info("Initializing WebDriver...")
+        driver = get_driver(browser)
+        login_url = "https://pocketoption.com/en/login/"  # The explicit login page URL.
+        cabinet_base_url = (
+            "https://pocketoption.com/en/cabinet"  # The base URL of the user cabinet.
+        )
 
-        logger.info(f"Navigating to login page: {login_url}")
-        driver.get(login_url)
+        logger.info(f"Navigating to PocketOption login page: {login_url}")
+        driver.get(login_url)  # Open the login page.
 
-        # Wait indefinitely for the user to manually log in and be redirected to the cabinet base page.
-        # This uses an explicit wait condition to check if the current URL contains the cabinet_base_url.
-        logger.info(f"Waiting for user to login and redirect to {cabinet_base_url}...")
-        WebDriverWait(driver, 9999).until(EC.url_contains(cabinet_base_url))
-        logger.info("Login successful. Redirected to cabinet base page.")
+        logger.info(f"Please log in manually. Waiting up to {login_timeout} seconds...")
 
-        # Now navigate to the specific target URL within the cabinet.
-        logger.info(f"Navigating to target cabinet page: {target_cabinet_url}")
-        driver.get(target_cabinet_url)
+        # Wait for the user to log in and be redirected to the cabinet.
+        WebDriverWait(driver, login_timeout).until(url_contains_safe(cabinet_base_url))
+        logger.info("Login successful! Preparing to intercept WebSocket traffic.")
 
-        # Wait for the target cabinet URL to be fully loaded.
-        # This ensures that any WebSocket connections initiated on this page are established.
-        WebDriverWait(driver, 60).until(EC.url_contains(target_cabinet_url))
-        logger.info("Successfully navigated to the target cabinet page.")
+        # This JavaScript hooks into the WebSocket 'send' method to capture outgoing messages.
+        # It stores any message containing 'auth' in a global array.
+        interception_script = """
+            window.ws_messages = window.ws_messages || [];
+            if (!WebSocket.prototype._original_send) {
+                WebSocket.prototype._original_send = WebSocket.prototype.send;
+                WebSocket.prototype.send = function(data) {
+                    if (typeof data === 'string' && data.includes('auth')) {
+                        window.ws_messages.push(data);
+                    }
+                    WebSocket.prototype._original_send.apply(this, arguments);
+                };
+            }
+        """
+        # Inject the script *before* navigating to the page that sends the auth message.
+        # This prevents a race condition.
+        driver.execute_script(interception_script)
+        logger.info("Injected WebSocket interception script.")
 
-        # Give the page some time to load all WebSocket connections and messages after redirection.
-        # This delay helps ensure that the relevant WebSocket frames are captured in the logs.
-        time.sleep(5)
+        # Navigate to a page known to trigger the required WebSocket authentication.
+        target_url = "https://pocketoption.com/en/cabinet/demo-quick-high-low/"
+        logger.info(f"Navigating to: {target_url}")
+        driver.get(target_url)
 
-        # Retrieve performance logs which include network requests and WebSocket frames.
-        # These logs are crucial for capturing the raw WebSocket messages.
-        get_log = getattr(driver, "get_log", None)
-        if not callable(get_log):
-            raise AttributeError(
-                "Your WebDriver does not support get_log(). Make sure you are using Chrome with performance logging enabled."
+        # Wait for a few seconds to ensure WebSocket frames are sent and captured.
+        logger.info(f"Waiting {wait_after_navigate} seconds for WebSocket traffic...")
+        time.sleep(wait_after_navigate)
+
+        # Retrieve the captured WebSocket messages.
+        logger.info("Retrieving captured WebSocket messages...")
+        retrieval_script = "return window.ws_messages || [];"
+        messages: List[str] = driver.execute_script(retrieval_script)
+
+        # This regex is more flexible, matching the required '42["auth",{...}]' structure
+        # while allowing for other keys in the object.
+        ssid_pattern = re.compile(r'(42\["auth",\{.*?"session":".*?.*\}\])')
+        found_ssid_string = None  # Initialize variable to store the found string.
+
+        if not messages:
+            logger.warning(
+                "No WebSocket 'auth' messages were captured. The site may have changed."
             )
-        performance_logs = cast(List[Dict[str, Any]], get_log("performance"))
-        logger.info(f"Collected {len(performance_logs)} performance log entries.")
-
-        found_full_ssid_string = None
-        # Iterate through the performance logs to find WebSocket frames.
-        for entry in performance_logs:
-            message = json.loads(entry["message"])
-            # Check if the log entry is a WebSocket frame (either sent or received)
-            # and contains the desired payload data.
-            if (
-                message["message"]["method"] == "Network.webSocketFrameReceived"
-                or message["message"]["method"] == "Network.webSocketFrameSent"
-            ):
-                payload_data = message["message"]["params"]["response"]["payloadData"]
-                # Attempt to find the full SSID string using the defined regex pattern.
-                match = re.search(ssid_pattern, payload_data)
+        else:
+            logger.info(
+                f"Captured {len(messages)} potential auth messages. Searching for exact pattern..."
+            )
+            # Iterate through captured messages to find the one matching the regex.
+            for i, msg in enumerate(messages):
+                match = ssid_pattern.search(msg)  # Search for the auth pattern.
                 if match:
-                    # Capture the entire matched group as the full SSID string.
-                    found_full_ssid_string = match.group(1)
+                    found_ssid_string = match.group(
+                        1
+                    )  # Capture the full matched string.
                     logger.info(
-                        f"Found full SSID string in WebSocket payload: {found_full_ssid_string}"
+                        f"Successfully found the target auth string: {found_ssid_string}"
                     )
-                    # Break after finding the first match as it's likely the correct one.
-                    break
+                    break  # Exit the loop once the target is found.
+                else:
+                    # Log messages that were captured but didn't match for debugging.
+                    logger.warning(
+                        f"Message {i + 1} did not match pattern. Content: {msg}"
+                    )
 
-        if found_full_ssid_string:
-            # Save the extracted full SSID string to the .env file.
-            save_to_env("SSID", found_full_ssid_string)
-            logger.info("Full SSID string successfully extracted and saved to .env.")
+        # After checking all messages, save the result if it was found.
+        if found_ssid_string:
+            save_to_env("SSID", found_ssid_string)  # Save the complete string.
         else:
             logger.warning(
-                "Full SSID string pattern not found in WebSocket logs after login."
+                "Could not find the target SSID auth string in the captured traffic."
             )
 
+    except TimeoutException:
+        # Handle login timeout.
+        logger.error(
+            f"Login timeout of {login_timeout} seconds exceeded. Navigation to cabinet failed."
+        )
     except Exception as e:
-        logger.error(f"An error occurred: {e}", exc_info=True)
+        # Log any other exceptions.
+        logger.error(f"An unexpected error occurred: {e}", exc_info=True)
     finally:
-        # Ensure the WebDriver is closed even if an error occurs to free up resources.
+        # Ensure the WebDriver is always closed.
         if driver:
             driver.quit()
-            logger.info("WebDriver closed.")
+            logger.info("WebDriver has been closed.")
 
 
+# Section: Main Execution Block
+# -----------------------------
+
+
+def main() -> None:
+    """
+    Parses command-line arguments and executes the SSID extraction script.
+    """
+    # Initialize the argument parser.
+    parser = argparse.ArgumentParser(
+        description="Extract the full SSID auth message from PocketOption and save it to a .env file."
+    )
+    # Add command-line arguments.
+    parser.add_argument(
+        "--browser",
+        type=str,
+        default="chrome",
+        help="Browser to use (e.g., 'chrome', 'firefox'). Default: chrome.",
+    )
+    parser.add_argument(
+        "--login-timeout",
+        type=int,
+        default=600,
+        help="Maximum time in seconds to wait for manual login. Default: 600.",
+    )
+    parser.add_argument(
+        "--wait-after-navigate",
+        type=int,
+        default=7,
+        help="Time in seconds to wait after navigation for WebSockets to communicate. Default: 7.",
+    )
+    # Parse the arguments.
+    args = parser.parse_args()
+
+    # Call the core function with the parsed arguments.
+    get_pocketoption_ssid(
+        browser=args.browser,
+        login_timeout=args.login_timeout,
+        wait_after_navigate=args.wait_after_navigate,
+    )
+
+
+# Entry point for direct execution.
 if __name__ == "__main__":
-    get_pocketoption_ssid()
+    main()

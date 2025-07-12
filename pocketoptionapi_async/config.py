@@ -1,3 +1,4 @@
+# pocketoptionapi_async/config.py
 """
 Configuration file for the async PocketOption API
 """

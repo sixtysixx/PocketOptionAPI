@@ -18,14 +18,13 @@ def format_session_id(
     uid: int = 0,
     platform: int = 1,
     is_fast_history: bool = True,
-) -> str:
+) -> Dict[str, Any]:  # Changed return type to Dict[str, Any]
     """
-    Format session ID for authentication.
-    This function constructs the authentication message in the format
-    expected by PocketOption's WebSocket API, which starts with '42["auth",...]'.
+    Format session ID for authentication into a dictionary suitable for
+    `python-socketio`'s `auth` parameter.
 
     Args:
-        session_id: The raw session ID obtained from the PocketOption login process.
+        session_id: The raw session ID or a complete PHP-serialized string.
         is_demo: A boolean indicating whether the session is for a demo account (True) or a real account (False).
                  This is converted to 1 for demo and 0 for live as required by the API.
         uid: The user ID associated with the session.
@@ -33,10 +32,8 @@ def format_session_id(
         is_fast_history: A boolean flag to enable or disable fast history loading.
 
     Returns:
-        str: The complete formatted session message ready to be sent over the WebSocket for authentication.
+        Dict[str, Any]: A dictionary containing authentication data.
     """
-    import json
-
     # Construct the dictionary containing authentication data.
     auth_data = {
         "session": session_id,
@@ -49,9 +46,10 @@ def format_session_id(
     if is_fast_history:
         auth_data["isFastHistory"] = True
 
-    # Serialize the authentication data dictionary to a JSON string.
-    # Then, embed it into the '42["auth",...]' message format.
-    return f'42["auth",{json.dumps(auth_data)}]'
+    # This dictionary will be passed directly to the `auth` parameter of
+    # `socketio.AsyncClient.connect()`, and `python-socketio` will handle
+    # the correct serialization and framing (e.g., into '42["auth", {...}]').
+    return auth_data
 
 
 def calculate_payout_percentage(

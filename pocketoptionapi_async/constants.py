@@ -165,6 +165,8 @@ ASSETS: Dict[str, int] = {
 class Regions:
     """WebSocket region endpoints for PocketOption."""
 
+    # Updated _REGIONS to include chat-po.site and events-po.com from the HAR file,
+    # representing other Socket.IO endpoints used by PocketOption.
     _REGIONS: Dict[str, str] = {
         "EUROPA": "wss://api-eu.po.market/socket.io/?EIO=4&transport=websocket",
         "SEYCHELLES": "wss://api-sc.po.market/socket.io/?EIO=4&transport=websocket",
@@ -185,6 +187,9 @@ class Regions:
         "SERVER3": "wss://api-c.po.market/socket.io/?EIO=4&transport=websocket",
         "ASIA": "wss://api-asia.po.market/socket.io/?EIO=4&transport=websocket",
         "SERVER4": "wss://api-us-south.po.market/socket.io/?EIO=4&transport=websocket",
+        # Added endpoints from the HAR file
+        "CHAT_PO": "wss://chat-po.site/cabinet-client/socket.io/?EIO=4&transport=websocket",
+        "EVENTS_PO": "wss://events-po.com/socket.io/?EIO=4&transport=websocket",
     }
 
     @classmethod
@@ -244,6 +249,11 @@ REGIONS = Regions()
 # This dictionary maps common timeframe abbreviations (e.g., "1m" for 1 minute)
 # to their equivalent duration in seconds, as required by the API.
 TIMEFRAMES: Dict[str, int] = {
+    "1s": 1,  # Added 1s, 5s, 10s, 15s, 30s based on common trading timeframes and models.py
+    "5s": 5,
+    "10s": 10,
+    "15s": 15,
+    "30s": 30,
     "1m": 60,
     "5m": 300,
     "15m": 900,
@@ -252,11 +262,14 @@ TIMEFRAMES: Dict[str, int] = {
     "4h": 14400,
     "1d": 86400,
     "1w": 604800,
+    # "1mn": 2592000, # Assuming 30 days for a month
 }
 
 # Connection settings for the WebSocket client.
 # These parameters control the behavior of the WebSocket connection,
 # including ping intervals, timeouts, and reconnection strategies.
+# Note: Many of these are now managed internally by python-socketio.
+# Kept here for reference or for when a raw websocket client is needed.
 CONNECTION_SETTINGS: Dict[str, int] = {
     "ping_interval": 20,  # seconds: how often to send a ping frame to keep connection alive
     "ping_timeout": 10,  # seconds: how long to wait for a pong response before considering connection dead
@@ -265,6 +278,7 @@ CONNECTION_SETTINGS: Dict[str, int] = {
     "reconnect_delay": 5,  # seconds: initial delay before attempting a reconnect
     "message_timeout": 30,  # seconds: timeout for receiving a single message
 }
+
 
 # API Limits for trading operations.
 # These define constraints on order amounts, durations, and API request rates
@@ -276,6 +290,7 @@ API_LIMITS: Dict[str, float] = {
     "max_duration": 43200,  # 12 hours in seconds: Maximum duration for an option trade
     "max_concurrent_orders": 10,  # Maximum number of open orders at any given time
     "rate_limit": 100,  # requests per minute: General API request rate limit
+    "default_timeout": 30.0,  # Default timeout for API calls
 }
 
 # Default headers to be sent with WebSocket connection requests.
