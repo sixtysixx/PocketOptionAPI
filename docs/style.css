@@ -91,24 +91,30 @@ h2, h3 {
 }
 
 
+
 pre {
-  background: linear-gradient(90deg, #231942 60%, #7c3aed22 100%);
+  background: #1e133a;
   color: #e0c3fc;
   border-radius: 0.7rem;
-  padding: 1.2rem 1rem 1rem 1.2rem;
-  font-size: 1.05rem;
-  overflow-x: auto;
+  padding: 1.3rem 1.2rem 1.1rem 1.2rem;
+  font-size: 1.08rem;
+  font-family: 'Fira Mono', 'Consolas', 'Menlo', 'Monaco', monospace;
   margin-bottom: 2.2rem;
   position: relative;
   box-shadow: 0 2px 16px rgba(124,58,237,0.10);
+  overflow-x: auto;
+  white-space: pre;
+  line-height: 1.6;
+  border: 1.5px solid #7c3aed33;
 }
 
 code {
-  background: #1e133a;
+  background: #231942;
   color: #e0c3fc;
   border-radius: 0.4rem;
-  padding: 0.2em 0.5em;
+  padding: 0.18em 0.5em;
   font-size: 1em;
+  font-family: 'Fira Mono', 'Consolas', 'Menlo', 'Monaco', monospace;
 }
 
 pre code {
@@ -116,6 +122,7 @@ pre code {
   color: inherit;
   padding: 0;
   font-size: inherit;
+  font-family: inherit;
 }
 
 pre .copy-btn {
