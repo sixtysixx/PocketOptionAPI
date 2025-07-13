@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Reference - PocketOptionAPI Async Docs</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header>
+    <h1>PocketOptionAPI Async</h1>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="quickstart.html">Quickstart</a>
+      <a href="api.html">API Reference</a>
+      <a href="examples.html">Examples</a>
+      <a href="faq.html">FAQ</a>
+    </nav>
+  </header>
+  <main>
+    <h2>API Reference</h2>
+    <div class="card">
+      <h3>AsyncPocketOptionClient</h3>
+      <ul>
+        <li><b>AsyncPocketOptionClient(SSID, is_demo=True, enable_logging=False)</b><br>
+          Create a new client instance.
+        </li>
+        <li><b>await client.connect()</b><br>
+          Connect to Pocket Option using your SSID.
+        </li>
+        <li><b>await client.disconnect()</b><br>
+          Disconnect from the server.
+        </li>
+        <li><b>await client.get_balance()</b><br>
+          Get your account balance and currency.
+        </li>
+        <li><b>await client.get_candles(asset, timeframe)</b><br>
+          Get candle data for a symbol and timeframe.
+        </li>
+        <li><b>await client.get_candles_dataframe(asset, timeframe)</b><br>
+          Get candle data as a pandas DataFrame.
+        </li>
+        <li><b>await client.place_order(asset, amount, direction, duration)</b><br>
+          Place a CALL or PUT order.
+        </li>
+        <li><b>await client.get_active_orders()</b><br>
+          List your currently active orders.
+        </li>
+        <li><b>await client.check_order_result(order_id)</b><br>
+          Check the result of an order (win/loss/pending).
+        </li>
+        <li><b>await client.check_win(order_id)</b><br>
+          Check if an order was a win or loss.
+        </li>
+        <li><b>await client.get_connection_stats()</b><br>
+          Get connection statistics and status.
+        </li>
+      </ul>
+      <h3>OrderDirection</h3>
+      <ul>
+        <li><b>OrderDirection.CALL</b> - Place a CALL order</li>
+        <li><b>OrderDirection.PUT</b> - Place a PUT order</li>
+      </ul>
+    </div>
+    <div class="advert">
+      Want a custom trading bot? <a href="https://shop.chipatrade.com/products/create-your-bot?variant=42924637487206" target="_blank">Let us build it for you!</a>
+    </div>
+  </main>
+</body>
+</html>
