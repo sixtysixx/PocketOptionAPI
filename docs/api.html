@@ -23,39 +23,101 @@
     <div class="card">
       <h3>AsyncPocketOptionClient</h3>
       <ul>
-        <li><b>AsyncPocketOptionClient(SSID, is_demo=True, enable_logging=False)</b><br>
-          Create a new client instance.
-        </li>
-        <li><b>await client.connect()</b><br>
-          Connect to Pocket Option using your SSID.
-        </li>
-        <li><b>await client.disconnect()</b><br>
-          Disconnect from the server.
-        </li>
-        <li><b>await client.get_balance()</b><br>
-          Get your account balance and currency.
-        </li>
-        <li><b>await client.get_candles(asset, timeframe)</b><br>
-          Get candle data for a symbol and timeframe.
-        </li>
-        <li><b>await client.get_candles_dataframe(asset, timeframe)</b><br>
-          Get candle data as a pandas DataFrame.
-        </li>
-        <li><b>await client.place_order(asset, amount, direction, duration)</b><br>
-          Place a CALL or PUT order.
-        </li>
-        <li><b>await client.get_active_orders()</b><br>
-          List your currently active orders.
-        </li>
-        <li><b>await client.check_order_result(order_id)</b><br>
-          Check the result of an order (win/loss/pending).
-        </li>
-        <li><b>await client.check_win(order_id)</b><br>
-          Check if an order was a win or loss.
-        </li>
-        <li><b>await client.get_connection_stats()</b><br>
-          Get connection statistics and status.
-        </li>
+        <li><b>AsyncPocketOptionClient(ssid, is_demo=True, enable_logging=True, ...)</b><br>
+        <span style="color:#a78bfa">Create a new async client for Pocket Option.</span></p>
+        <pre><code>from pocketoptionapi_async import AsyncPocketOptionClient
+client = AsyncPocketOptionClient("SSID", is_demo=True, enable_logging=True)
+</code></pre>
+        <ul>
+          <li><b>ssid</b> (str): Your Pocket Option SSID cookie value (required)</li>
+          <li><b>is_demo</b> (bool): Use demo account if True, real if False (default: True)</li>
+          <li><b>enable_logging</b> (bool): Enable logging output (default: True)</li>
+        </ul>
+
+        <h3>Method: connect()</h3>
+        <p>Connect to Pocket Option. <b>Must be awaited.</b></p>
+        <pre><code>await client.connect()</code></pre>
+
+        <h3>Method: disconnect()</h3>
+        <p>Disconnect from Pocket Option. <b>Must be awaited.</b></p>
+        <pre><code>await client.disconnect()</code></pre>
+
+        <h3>Method: get_balance()</h3>
+        <p>Get your account balance and currency.</p>
+        <pre><code>balance = await client.get_balance()
+print(balance.balance, balance.currency)
+</code></pre>
+
+        <h3>Method: get_candles(asset, timeframe, count=100, end_time=None)</h3>
+        <p>Get historical candle data for an asset and timeframe.</p>
+        <pre><code>candles = await client.get_candles("EURUSD_otc", 60)
+for candle in candles:
+    print(candle.open, candle.close)
+</code></pre>
+        <ul>
+          <li><b>asset</b> (str): Symbol, e.g. "EURUSD_otc"</li>
+          <li><b>timeframe</b> (int or str): Timeframe in seconds or string (e.g. 60 or "1m")</li>
+          <li><b>count</b> (int): Number of candles (default 100)</li>
+          <li><b>end_time</b> (datetime): End time (default now)</li>
+        </ul>
+
+        <h3>Method: get_candles_dataframe(asset, timeframe, ...)</h3>
+        <p>Get candle data as a pandas DataFrame.</p>
+        <pre><code>df = await client.get_candles_dataframe("EURUSD_otc", 60)
+print(df.head())
+</code></pre>
+
+        <h3>Method: place_order(asset, amount, direction, duration)</h3>
+        <p>Place a binary options order (CALL/PUT).</p>
+        <pre><code>from pocketoptionapi_async import OrderDirection
+order = await client.place_order(
+    asset="EURUSD_otc",
+    amount=1.0,
+    direction=OrderDirection.CALL,
+    duration=60
+)
+print(order.order_id, order.status)
+</code></pre>
+        <ul>
+          <li><b>asset</b> (str): Symbol, e.g. "EURUSD_otc"</li>
+          <li><b>amount</b> (float): Amount to invest</li>
+          <li><b>direction</b> (OrderDirection): CALL or PUT</li>
+          <li><b>duration</b> (int): Duration in seconds (min 5)</li>
+        </ul>
+
+        <h3>Method: get_active_orders()</h3>
+        <p>Get a list of your currently active orders.</p>
+        <pre><code>orders = await client.get_active_orders()
+for order in orders:
+    print(order.order_id, order.status)
+</code></pre>
+
+        <h3>Method: check_order_result(order_id)</h3>
+        <p>Check the result of an order (win/loss/pending).</p>
+        <pre><code>result = await client.check_order_result(order_id)
+if result:
+    print(result.status, result.profit)
+</code></pre>
+
+        <h3>Method: get_connection_stats()</h3>
+        <p>Get connection statistics and status.</p>
+        <pre><code>stats = client.get_connection_stats()
+print(stats)
+</code></pre>
+
+        <h3>OrderDirection Enum</h3>
+        <pre><code>from pocketoptionapi_async import OrderDirection
+OrderDirection.CALL  # "call"
+OrderDirection.PUT   # "put"
+</code></pre>
+        <ul>
+          <li><b>CALL</b>: Place a call (up) order</li>
+          <li><b>PUT</b>: Place a put (down) order</li>
+        </ul>
+      </div>
+    <div class="advert">
+      Want a custom trading bot? <a href="https://shop.chipatrade.com/products/create-your-bot?variant=42924637487206" target="_blank">Let us build it for you!</a>
+    </div>
       </ul>
       <h3>OrderDirection</h3>
       <ul>
@@ -68,4 +130,5 @@
     </div>
   </main>
 </body>
+<script src="codeblock.js"></script>
 </html>
