@@ -6,7 +6,7 @@ async def main():
     client = AsyncPocketOptionClient(SSID, is_demo=True, enable_logging=False)
     await client.connect()
 
-    stats = await client.get_connection_stats()
+    stats = client.get_connection_stats()
     print(f"Connection Stats: {stats}")
 
     await client.disconnect()

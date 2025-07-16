@@ -125,6 +125,16 @@ class ConnectionKeepAlive:
             self.is_connected = False
             return False
 
+    async def establish_connection(self) -> bool:
+        """
+        Public method to establish a WebSocket connection to PocketOption server.
+        This is a wrapper around the private _establish_connection method.
+
+        Returns:
+            bool: True if connection is successfully established, False otherwise.
+        """
+        return await self._establish_connection()
+
     async def _process_message(self, message):
         """
         Processes incoming WebSocket messages from the PocketOption server.
@@ -474,7 +484,7 @@ async def demo_keep_alive():
 
     try:
         # Start the persistent connection. This will also start background tasks.
-        success = await keep_alive._establish_connection()
+        success = await keep_alive.establish_connection()
 
         if success:
             logger.info(

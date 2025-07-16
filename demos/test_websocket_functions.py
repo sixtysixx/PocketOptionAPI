@@ -194,7 +194,8 @@ async def test_async_websocket_client():
             return
 
         # Try connecting to the first demo URL
-        connected = await client.connect([demo_urls[0]], TEST_SSID)
+        auth_data = {"session": TEST_SSID, "isDemo": 1, "uid": 0, "platform": 1}
+        connected = await client.connect([demo_urls[0]], auth_data)
         logger.info(f"AsyncWebSocketClient connected status: {connected}")
         logger.info(f"Is client connected (property): {client.is_connected}")
 
@@ -242,7 +243,7 @@ async def test_connection_keep_alive():
     persistent connection, auto-reconnection, message sending, and stats.
     """
     logger.info("\n--- Testing ConnectionKeepAlive ---")
-    keep_alive = ConnectionKeepAlive(TEST_SSID, is_demo=True)
+    keep_alive: ConnectionKeepAlive = ConnectionKeepAlive(TEST_SSID, is_demo=True)
 
     # Register event handlers
     keep_alive.add_event_handler("connected", on_connected)
@@ -257,7 +258,7 @@ async def test_connection_keep_alive():
     # Test starting persistent connection
     logger.info("Attempting to start persistent connection with ConnectionKeepAlive...")
     try:
-        connected = await keep_alive.start_persistent_connection()
+        connected = await keep_alive.establish_connection()
         logger.info(f"ConnectionKeepAlive connected status: {connected}")
         logger.info(f"Is keep_alive connected (property): {keep_alive.is_connected}")
 
@@ -290,7 +291,8 @@ async def test_connection_keep_alive():
     finally:
         # Test stopping persistent connection
         logger.info("Attempting to stop persistent connection...")
-        await keep_alive.websocket.disconnect()
+        if keep_alive.websocket is not None and keep_alive.is_connected:
+            await keep_alive.websocket.disconnect()
         logger.info(
             f"ConnectionKeepAlive connected status after stop: {keep_alive.is_connected}"
         )

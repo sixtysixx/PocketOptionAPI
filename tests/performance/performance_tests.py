@@ -30,9 +30,7 @@ class PerformanceTester:
         for i in range(iterations):
             start_time = time.time()
 
-            client = AsyncPocketOptionClient(
-                ssid=self.session_id, is_demo=self.is_demo
-            )
+            client = AsyncPocketOptionClient(ssid=self.session_id, is_demo=self.is_demo)
 
             try:
                 await client.connect()
@@ -68,9 +66,7 @@ class PerformanceTester:
         """Test order placement performance"""
         logger.info(f"Testing order placement performance ({iterations} iterations)")
 
-        client = AsyncPocketOptionClient(
-            ssid=self.session_id, is_demo=self.is_demo
-        )
+        client = AsyncPocketOptionClient(ssid=self.session_id, is_demo=self.is_demo)
 
         order_times = []
         successful_orders = 0
@@ -130,9 +126,7 @@ class PerformanceTester:
         """Test data retrieval performance"""
         logger.info("Testing data retrieval performance")
 
-        client = AsyncPocketOptionClient(
-            ssid=self.session_id, is_demo=self.is_demo
-        )
+        client = AsyncPocketOptionClient(ssid=self.session_id, is_demo=self.is_demo)
 
         operations = {
             "balance": lambda: client.get_balance(),
@@ -189,9 +183,7 @@ class PerformanceTester:
         logger.info(f"Testing concurrent operations (level: {concurrency_level})")
 
         async def perform_operation(operation_id: int):
-            client = AsyncPocketOptionClient(
-                ssid=self.session_id, is_demo=self.is_demo
-            )
+            client = AsyncPocketOptionClient(ssid=self.session_id, is_demo=self.is_demo)
 
             start_time = time.time()
 
