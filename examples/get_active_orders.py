@@ -1,5 +1,6 @@
 from pocketoptionapi_async import AsyncPocketOptionClient
 
+
 async def main():
     SSID = input("Enter your SSID: ")
     client = AsyncPocketOptionClient(SSID, is_demo=True, enable_logging=False)
@@ -9,12 +10,16 @@ async def main():
     if orders:
         print("Active Orders:")
         for order in orders:
-            print(f"Order ID: {order['id']}, Amount: {order['amount']}, Status: {order['status']}")
+            print(
+                f"Order ID: {order['id']}, Amount: {order['amount']}, Status: {order['status']}"
+            )
     else:
         print("No active orders found.")
 
     await client.disconnect()
 
+
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())

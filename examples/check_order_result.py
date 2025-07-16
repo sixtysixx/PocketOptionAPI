@@ -1,5 +1,6 @@
 from pocketoptionapi_async import AsyncPocketOptionClient, OrderDirection
 
+
 async def main():
     SSID = input("Enter your SSID: ")
     client = AsyncPocketOptionClient(SSID, is_demo=True, enable_logging=False)
@@ -11,7 +12,9 @@ async def main():
         symbol = input("Enter the symbol (e.g., 'EURUSD_otc'): ")
         direction = OrderDirection.PUT
 
-        order = await client.place_order(asset=symbol, amount=amount, direction=direction, duration=5)
+        order = await client.place_order(
+            asset=symbol, amount=amount, direction=direction, duration=5
+        )
         result = await client.check_order_result(order.order_id)
         if result:
             print(f"Order placed successfully: {result}")
@@ -22,6 +25,8 @@ async def main():
 
     await client.disconnect()
 
+
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())

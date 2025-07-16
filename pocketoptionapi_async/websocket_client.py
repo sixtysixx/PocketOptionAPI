@@ -228,7 +228,11 @@ class AsyncWebSocketClient:
                 reconnect_attempts=attempt_count,
             )
         await self._emit_event(
-            "reconnected", {"attempt": attempt_count, "url": self.connection_info.url if self.connection_info else None}
+            "reconnected",
+            {
+                "attempt": attempt_count,
+                "url": self.connection_info.url if self.connection_info else None,
+            },
         )
 
     async def _on_sio_connect_error(self, data):

@@ -30,12 +30,10 @@ async def websocket_client(pro_callback):
         try:
             # Establish WebSocket connection.
             # Use DEFAULT_HEADERS which includes a random User-Agent for each connection attempt.
-            async with (
-                websockets.connect(
-                    url,
-                    extra_headers=DEFAULT_HEADERS,  # Use DEFAULT_HEADERS for random user agent and origin
-                ) as websocket
-            ):
+            async with websockets.connect(
+                url,
+                extra_headers=DEFAULT_HEADERS,  # Use DEFAULT_HEADERS for random user agent and origin
+            ) as websocket:
                 print(
                     f"Successfully connected to {websocket.host}. Listening for messages..."
                 )
