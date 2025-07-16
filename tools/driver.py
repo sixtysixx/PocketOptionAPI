@@ -3,14 +3,9 @@ import logging
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options as ChromeOptions
-from selenium.webdriver.firefox.service import Service as FirefoxService
-from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from webdriver_manager.chrome import (
     ChromeDriverManager,
 )  # Automatically downloads and manages ChromeDriver.
-from webdriver_manager.firefox import (
-    GeckoDriverManager,
-)  # Automatically downloads and manages GeckoDriver.
 
 # Configure logging for this module to provide clear output.
 logging.basicConfig(
@@ -27,7 +22,7 @@ def get_driver(browser_name: str = "chrome"):
     by storing browser profiles.
 
     Args:
-        browser_name: The name of the browser to use ('chrome' or 'firefox'). Defaults to 'chrome'.
+        browser_name: The name of the browser to use. Defaults to 'chrome'.
 
     Returns:
         A configured Selenium WebDriver instance.
@@ -81,36 +76,5 @@ def get_driver(browser_name: str = "chrome"):
         except Exception as e:
             logger.error(f"Error initializing Chrome WebDriver: {e}")
             raise
-
-    elif browser_name.lower() == "firefox":
-        firefox_options = FirefoxOptions()
-
-        # Set up a persistent profile for Firefox to maintain sessions and logins.
-        profile_dir = os.path.join(base_profile_dir, "firefox_profile")
-        os.makedirs(profile_dir, exist_ok=True)
-        firefox_options.profile = webdriver.FirefoxProfile(profile_dir)
-
-        # Set window size for consistent rendering.
-        firefox_options.add_argument("--width=1920")
-        firefox_options.add_argument("--height=1080")
-
-        # Attempt to enable network logging persistence in Firefox developer tools.
-        firefox_options.set_capability(
-            "moz:firefoxOptions", {"prefs": {"devtools.netmonitor.persistlog": True}}
-        )
-
-        logger.info("Initializing Firefox WebDriver...")
-        try:
-            # Use GeckoDriverManager to automatically download and manage the appropriate GeckoDriver.
-            service = FirefoxService(GeckoDriverManager().install())
-            driver = webdriver.Firefox(service=service, options=firefox_options)
-            logger.info("Firefox WebDriver initialized successfully.")
-            return driver
-        except Exception as e:
-            logger.error(f"Error initializing Firefox WebDriver: {e}")
-            raise
-
     else:
-        raise ValueError(
-            f"Unsupported browser: {browser_name}. Please choose 'chrome' or 'firefox'."
-        )
+        raise ValueError(f"Unsupported browser: {browser_name}.")

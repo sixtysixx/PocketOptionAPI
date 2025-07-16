@@ -11,8 +11,7 @@ import ssl  # Import ssl for WebSocket secure connections
 from typing import Optional, List, Callable, Dict, Any
 from datetime import datetime, timedelta
 from loguru import logger
-from websockets.exceptions import ConnectionClosed
-from websockets.legacy.client import connect, WebSocketClientProtocol
+import socketio
 
 from .models import ConnectionInfo, ConnectionStatus
 from .constants import (
@@ -41,7 +40,7 @@ class ConnectionKeepAlive:
         self.is_demo = is_demo
 
         # Connection state variables
-        self.websocket: Optional[WebSocketClientProtocol] = None
+        self.websocket: Optional[socketio.AsyncSimpleClient] = None
         self.connection_info: Optional[ConnectionInfo] = None
         self.is_connected = False
         self.should_reconnect = True  # Flag to control reconnection attempts
@@ -86,400 +85,45 @@ class ConnectionKeepAlive:
             f"Initialized keep-alive manager with {len(self.available_urls)} available regions"
         )
 
-    async def start_persistent_connection(self) -> bool:
-        """
-        Starts a persistent WebSocket connection with automatic keep-alive and reconnection.
-        This method attempts to establish an initial connection and then kicks off
-        all necessary background tasks to maintain it.
-
-        Returns:
-            bool: True if the initial connection and background tasks are successfully started, False otherwise.
-        """
-        logger.info("Starting persistent connection with keep-alive...")
-
-        try:
-            # Attempt to establish the initial WebSocket connection.
-            if await self._establish_connection():
-                # If connection is successful, start all monitoring and communication tasks.
-                await self._start_background_tasks()
-                logger.success(
-                    "Success: Persistent connection established with keep-alive active"
-                )
-                return True
-            else:
-                logger.error("Error: Failed to establish initial connection")
-                return False
-
-        except Exception as e:
-            logger.error(f"Error: Error starting persistent connection: {e}")
-            return False
-
-    async def stop_persistent_connection(self):
-        """
-        Stops the persistent connection and gracefully cancels all running background tasks.
-        Sets a flag to prevent further reconnection attempts and closes the WebSocket.
-        """
-        logger.info("Stopping persistent connection...")
-
-        self.should_reconnect = False  # Signal background tasks to stop
-
-        # Cancel all associated asyncio tasks.
-        tasks = [
-            self._ping_task,
-            self._reconnect_task,
-            self._message_task,
-            self._health_task,
-        ]
-        for task in tasks:
-            if task and not task.done():
-                task.cancel()  # Request task cancellation
-                try:
-                    await task  # Await task to ensure it cleans up properly
-                except asyncio.CancelledError:
-                    pass  # Expected exception when cancelling
-
-        # Close the WebSocket connection if it's open.
-        if self.websocket:
-            await self.websocket.close()
-            self.websocket = None
-
-        self.is_connected = False  # Update connection state
-        logger.info("Success: Persistent connection stopped")
-
     async def _establish_connection(self) -> bool:
         """
-        Attempts to establish a WebSocket connection to one of the available URLs.
-        It iterates through the `available_urls` list, trying each one until a connection is successful.
-        Includes SSL context setup and an initial handshake.
+        Establishes a WebSocket connection to PocketOption server.
+        Handles SSL context setup and initial connection attempt.
 
         Returns:
-            bool: True if a connection is successfully established and handshake completed, False otherwise.
-        """
-        for attempt in range(len(self.available_urls)):
-            url = self.available_urls[self.current_url_index]
-
-            try:
-                logger.info(
-                    f"Connecting: Attempting connection to {url} (attempt {attempt + 1})"
-                )
-
-                # Configure SSL context for secure WebSocket connections.
-                # `PROTOCOL_TLS_CLIENT` is used for client-side connections.
-                # `check_hostname = False` and `verify_mode = ssl.CERT_NONE` are used for broader
-                # compatibility, but can be made stricter in production environments if needed.
-                ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-                ssl_context.check_hostname = False
-                ssl_context.verify_mode = ssl.CERT_NONE
-
-                # Establish the WebSocket connection with a timeout.
-                # `extra_headers` are taken from `DEFAULT_HEADERS` which includes a random User-Agent.
-                # `ping_interval` and `ping_timeout` are set to `None` because pings are handled manually
-                # by the `_ping_loop` for more control over the specific PocketOption ping message.
-                self.websocket = await asyncio.wait_for(
-                    connect(
-                        url,
-                        ssl=ssl_context,
-                        extra_headers=DEFAULT_HEADERS,  # Use DEFAULT_HEADERS for User-Agent etc.
-                        ping_interval=None,  # Manual ping handling
-                        ping_timeout=None,  # Manual ping handling
-                        close_timeout=10,
-                    ),
-                    timeout=15.0,  # Timeout for the initial connection attempt
-                )
-
-                # Update connection information upon successful connection.
-                region = self._extract_region_from_url(url)
-                self.connection_info = ConnectionInfo(
-                    url=url,
-                    region=region,
-                    status=ConnectionStatus.CONNECTED,
-                    connected_at=datetime.now(),
-                    reconnect_attempts=self.current_reconnect_attempts,
-                )
-
-                self.is_connected = True  # Mark connection as active
-                self.current_reconnect_attempts = (
-                    0  # Reset reconnect counter on success
-                )
-                self.connection_stats["total_connections"] += 1
-                self.connection_stats["successful_connections"] += 1
-
-                # Perform the initial handshake sequence required by PocketOption.
-                await self._send_handshake()
-
-                logger.success(f"Success: Connected to {region} region successfully")
-                await self._emit_event("connected", {"url": url, "region": region})
-
-                return True  # Connection successful
-
-            except Exception as e:
-                logger.warning(f"Caution: Failed to connect to {url}: {e}")
-
-                # Move to the next URL in the list for the next attempt.
-                self.current_url_index = (self.current_url_index + 1) % len(
-                    self.available_urls
-                )
-
-                # Ensure the WebSocket is closed if an error occurred during connection.
-                if self.websocket:
-                    try:
-                        await self.websocket.close()
-                    except Exception:
-                        pass  # Ignore errors during close
-                    self.websocket = None
-
-                await asyncio.sleep(1)  # Brief delay before trying the next URL
-
-        return False  # All URLs failed to connect
-
-    async def _send_handshake(self):
-        """
-        Performs the initial handshake sequence with the PocketOption server.
-        This involves sending and receiving specific messages to establish the session.
-        The `self.ssid` is expected to be in the `42["auth",...]` format.
-
-        Raises:
-            RuntimeError: If the WebSocket is not connected when this method is called.
-            Exception: If any part of the handshake process fails or times out.
+            bool: True if connection is successfully established, False otherwise.
         """
         try:
-            if not self.websocket:
-                raise RuntimeError("Handshake called with no websocket connection.")
+            # Create SSL context for secure WebSocket connection
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
 
-            # Step 1: Wait for the initial "0" message from the server.
-            # This message typically contains a session ID (sid) from the server.
-            initial_message = await asyncio.wait_for(
-                self.websocket.recv(), timeout=10.0
+            # Initialize SocketIO client
+            self.websocket = socketio.AsyncSimpleClient()
+            url = self.available_urls[self.current_url_index]
+
+            # Attempt connection
+            await self.websocket.connect(url)
+            self.is_connected = True
+
+            # Update connection info
+            self.connection_info = ConnectionInfo(
+                url=url,
+                region=self._extract_region_from_url(url),
+                connected_at=datetime.now(),
+                status=ConnectionStatus.CONNECTED,
             )
-            logger.debug(f"Received initial handshake message: {initial_message}")
 
-            # Step 2: Send the "40" response. This is a Socket.IO specific acknowledgment.
-            await self.websocket.send("40")
-            await asyncio.sleep(0.1)  # Small delay to allow server to process
+            # Send authentication SSID
+            await self.websocket.emit("message", self.ssid)
 
-            # Step 3: Wait for the connection establishment message ("40" with "sid").
-            # This confirms the Socket.IO connection is ready.
-            conn_message = await asyncio.wait_for(self.websocket.recv(), timeout=10.0)
-            logger.debug(f"Received connection confirmation: {conn_message}")
-
-            # Step 4: Send the SSID for authentication.
-            # `self.ssid` is already expected to be formatted as '42["auth", {...}]'.
-            await self.websocket.send(self.ssid)
-            logger.debug("Authentication SSID sent. Handshake completed.")
-
-            # Update message sent count
-            self.connection_stats["total_messages_sent"] += 2  # For "40" and SSID
+            return True
 
         except Exception as e:
-            logger.error(f"Handshake failed: {e}")
-            raise  # Re-raise the exception to indicate handshake failure
-
-    async def _start_background_tasks(self):
-        """
-        Starts all necessary background asyncio tasks to maintain the persistent connection.
-        This includes tasks for sending pings, receiving messages, monitoring health,
-        and managing reconnections.
-        """
-        logger.info("Persistent: Starting background keep-alive tasks...")
-
-        # Create and start the periodic ping task.
-        self._ping_task = asyncio.create_task(self._ping_loop())
-
-        # Create and start the message receiving task.
-        self._message_task = asyncio.create_task(self._message_loop())
-
-        # Create and start the connection health monitoring task.
-        self._health_task = asyncio.create_task(self._health_monitor_loop())
-
-        # Create and start the reconnection monitoring task.
-        self._reconnect_task = asyncio.create_task(self._reconnection_monitor())
-
-        logger.success("Success: All background tasks started")
-
-    async def _ping_loop(self):
-        """
-        Continuously sends a specific ping message ('42["ps"]') to the server
-        at regular intervals (`ping_interval`) to keep the WebSocket connection alive.
-        """
-        logger.info("Ping: Starting ping loop...")
-
-        while self.should_reconnect:  # Loop as long as reconnection is desired
-            try:
-                if self.is_connected and self.websocket:
-                    # Send the PocketOption specific ping message.
-                    await self.websocket.send('42["ps"]')
-                    self.connection_stats["last_ping_time"] = datetime.now()
-                    self.connection_stats["total_messages_sent"] += 1
-
-                    logger.debug("Ping: Ping sent")
-
-                await asyncio.sleep(
-                    self.ping_interval
-                )  # Wait for the next ping interval
-
-            except ConnectionClosed:
-                logger.warning(
-                    "Connecting: Connection closed during ping loop, stopping ping."
-                )
-                self.is_connected = False  # Mark as disconnected
-                break  # Exit loop
-            except Exception as e:
-                logger.error(f"Error: Ping failed unexpectedly: {e}, stopping ping.")
-                self.is_connected = False  # Mark as disconnected
-                break  # Exit loop
-
-    async def _message_loop(self):
-        """
-        Continuously receives and processes messages from the WebSocket.
-        This loop runs as a background task, listening for incoming data
-        and dispatching it to the `_process_message` method.
-        """
-        logger.info("Message: Starting message loop...")
-
-        while self.should_reconnect:  # Loop as long as reconnection is desired
-            try:
-                if self.is_connected and self.websocket:
-                    try:
-                        # Receive message with a timeout to prevent indefinite blocking.
-                        message = await asyncio.wait_for(
-                            self.websocket.recv(), timeout=30.0
-                        )
-
-                        self.connection_stats["total_messages_received"] += 1
-                        await self._process_message(
-                            message
-                        )  # Process the received message
-
-                    except asyncio.TimeoutError:
-                        logger.debug(
-                            "Message: Message receive timeout (normal, no message within 30s)."
-                        )
-                        continue  # Continue listening
-                else:
-                    await asyncio.sleep(1)  # Wait if not connected before re-checking
-
-            except ConnectionClosed:
-                logger.warning(
-                    "Connecting: Connection closed during message receive loop, stopping."
-                )
-                self.is_connected = False  # Mark as disconnected
-                break  # Exit loop
-            except Exception as e:
-                logger.error(
-                    f"Error: Message loop encountered an error: {e}, stopping."
-                )
-                self.is_connected = False  # Mark as disconnected
-                break  # Exit loop
-
-    async def _health_monitor_loop(self):
-        """
-        Monitors the health of the WebSocket connection by checking for recent pongs
-        and the WebSocket's internal state. If issues are detected, it marks the
-        connection as disconnected to trigger reconnection logic.
-        """
-        logger.info("Health: Starting health monitor...")
-
-        while self.should_reconnect:  # Loop as long as reconnection is desired
-            try:
-                await asyncio.sleep(30)  # Check health every 30 seconds
-
-                if not self.is_connected:
-                    logger.warning(
-                        "Health: Health check: Connection already marked as lost."
-                    )
-                    continue  # Skip checks if already disconnected
-
-                # Check if a ping response (pong) has been received recently.
-                # If the last ping was sent more than 60 seconds ago and no pong was received,
-                # it suggests the connection might be dead.
-                if self.connection_stats["last_ping_time"]:
-                    time_since_last_ping_sent = (
-                        datetime.now() - self.connection_stats["last_ping_time"]
-                    )
-                    if time_since_last_ping_sent > timedelta(seconds=60):
-                        logger.warning(
-                            "Health: Health check: No pong response for over 60 seconds, connection may be dead."
-                        )
-                        self.is_connected = False  # Trigger reconnection
-
-                # Directly check the WebSocket's internal state.
-                if self.websocket and self.websocket.closed:
-                    logger.warning(
-                        "Health: Health check: WebSocket is internally closed."
-                    )
-                    self.is_connected = False  # Trigger reconnection
-
-            except Exception as e:
-                logger.error(f"Error: Health monitor loop encountered an error: {e}")
-
-    async def _reconnection_monitor(self):
-        """
-        Monitors the connection status and automatically attempts to reconnect
-        if a disconnection is detected, up to `max_reconnect_attempts`.
-        """
-        logger.info("Persistent: Starting reconnection monitor...")
-
-        while self.should_reconnect:  # Loop as long as reconnection is desired
-            try:
-                await asyncio.sleep(5)  # Check connection status every 5 seconds
-
-                if not self.is_connected and self.should_reconnect:
-                    logger.warning(
-                        "Persistent: Detected disconnection, attempting reconnect..."
-                    )
-
-                    self.current_reconnect_attempts += 1  # Increment attempt counter
-
-                    # Check if maximum reconnection attempts have been reached.
-                    if self.current_reconnect_attempts <= self.max_reconnect_attempts:
-                        logger.info(
-                            f"Persistent: Reconnection attempt {self.current_reconnect_attempts}/{self.max_reconnect_attempts}"
-                        )
-
-                        # Clean up any existing broken WebSocket connection before reconnecting.
-                        if self.websocket:
-                            try:
-                                await self.websocket.close()
-                            except Exception:
-                                pass  # Ignore errors during close
-                            self.websocket = None
-
-                        # Attempt to re-establish the connection.
-                        success = await self._establish_connection()
-
-                        if success:
-                            logger.success("Success: Reconnection successful!")
-                            await self._emit_event(
-                                "reconnected",
-                                {
-                                    "attempt": self.current_reconnect_attempts,
-                                    "url": self.connection_info.url
-                                    if self.connection_info
-                                    else None,
-                                },
-                            )
-                        else:
-                            logger.error(
-                                f"Error: Reconnection attempt {self.current_reconnect_attempts} failed."
-                            )
-                            await asyncio.sleep(
-                                self.reconnect_delay
-                            )  # Wait before next attempt
-                    else:
-                        logger.error(
-                            f"Error: Max reconnection attempts ({self.max_reconnect_attempts}) reached. Stopping reconnection."
-                        )
-                        await self._emit_event(
-                            "max_reconnects_reached",
-                            {"attempts": self.current_reconnect_attempts},
-                        )
-                        self.should_reconnect = False  # Stop trying to reconnect
-                        break  # Exit loop
-
-            except Exception as e:
-                logger.error(
-                    f"Error: Reconnection monitor loop encountered an error: {e}"
-                )
+            logger.error(f"Connection error: {str(e)}")
+            self.is_connected = False
+            return False
 
     async def _process_message(self, message):
         """
@@ -537,7 +181,7 @@ class ConnectionKeepAlive:
             # Handle "2" (ping) message from the server, respond with "3" (pong).
             if message_str == "2":
                 if self.websocket:
-                    await self.websocket.send("3")
+                    await self.websocket.emit("3")
                     self.connection_stats["last_pong_time"] = datetime.now()
                     logger.debug("Ping: Pong sent in response to '2'.")
                 return
@@ -676,7 +320,7 @@ class ConnectionKeepAlive:
         """
         try:
             if self.is_connected and self.websocket:
-                await self.websocket.send(message)
+                await self.websocket.emit(message)
                 self.connection_stats["total_messages_sent"] += 1
                 logger.debug(f"Message: Sent: {message[:50]}...")
                 return True
@@ -765,43 +409,6 @@ class ConnectionKeepAlive:
             "available_regions": len(self.available_urls),
         }
 
-    async def connect_with_keep_alive(
-        self, regions: Optional[List[str]] = None
-    ) -> bool:
-        """
-        Establishes a persistent connection with keep-alive, optionally using a specific list of regions.
-        This method serves as the public entry point for starting the managed connection.
-
-        Args:
-            regions: An optional list of region URLs to prioritize for connection. If None,
-                     the regions defined during initialization (based on `is_demo`) are used.
-
-        Returns:
-            bool: True if the connection is successfully established, False otherwise.
-        """
-        if regions:
-            self.available_urls = regions  # Update the list of URLs to try
-            self.current_url_index = (
-                0  # Reset index to start from the beginning of the new list
-            )
-        return await self.start_persistent_connection()
-
-    async def disconnect(self) -> None:
-        """
-        Disconnects from the WebSocket and cleans up all persistent connection resources.
-        This is an alias for `stop_persistent_connection`.
-        """
-        await self.stop_persistent_connection()
-
-    def get_stats(self) -> Dict[str, Any]:
-        """
-        Returns connection statistics (alias for `get_connection_stats`).
-
-        Returns:
-            Dict[str, Any]: A dictionary containing various connection metrics and information.
-        """
-        return self.get_connection_stats()
-
 
 async def demo_keep_alive():
     """
@@ -867,7 +474,7 @@ async def demo_keep_alive():
 
     try:
         # Start the persistent connection. This will also start background tasks.
-        success = await keep_alive.start_persistent_connection()
+        success = await keep_alive._establish_connection()
 
         if success:
             logger.info(
@@ -900,7 +507,8 @@ async def demo_keep_alive():
     finally:
         # Ensure a clean shutdown of the persistent connection and all resources.
         logger.info("Testing: Initiating clean shutdown...")
-        await keep_alive.stop_persistent_connection()
+        if keep_alive.websocket:
+            await keep_alive.websocket.disconnect()
         logger.info("Testing: Demo finished.")
 
 

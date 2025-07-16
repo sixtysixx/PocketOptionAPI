@@ -6,12 +6,12 @@ It utilizes the region URLs and default headers (including a random user agent)
 defined in the `constants` module.
 """
 
-import websockets
+import socketio
 import anyio
 from rich.pretty import pprint as print
 from pocketoptionapi_async.constants import REGIONS, DEFAULT_HEADERS
 
-SESSION = r'42["auth",{"session":"a:4:{s:10:\"session_id\";s:32:\"a1dc009a7f1f0c8267d940d0a036156f\";s:10:\"ip_address\";s:12:\"190.162.4.33\";s:10:\"user_agent\";s:120:\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 OP\";s:13:\"last_activity\";i:1709914958;}793884e7bccc89ec798c06ef1279fcf2","isDemo":0,"uid":27658142,"platform":1}]'
+SESSION = r'42["auth",{"session":"a:4:{s:10:\"session_id\";s:32:\"a1dc009a7f1f0c8267d940d0a036156f\";s:10:\"ip_address\";s:12:\"1.1.1.1\";s:10:\"user_agent\";s:120:\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 OP\";s:13:\"last_activity\";i:1709914958;}793884e7bccc89ec798c06ef1279fcf2","isDemo":0,"uid":27658142,"platform":1}]'
 
 
 async def websocket_client(pro_callback):
@@ -30,17 +30,17 @@ async def websocket_client(pro_callback):
         try:
             # Establish WebSocket connection.
             # Use DEFAULT_HEADERS which includes a random User-Agent for each connection attempt.
-            async with websockets.connect(
-                url,
-                extra_headers=DEFAULT_HEADERS,  # Use DEFAULT_HEADERS for random user agent and origin
-            ) as websocket:
-                print(
-                    f"Successfully connected to {websocket.host}. Listening for messages..."
-                )
-                # Continuously receive messages from the WebSocket.
-                async for message in websocket:
-                    # Pass the message, websocket object, and the connected URL to the callback.
-                    await pro_callback(message, websocket, url)
+            sio = socketio.AsyncClient()
+
+            @sio.event
+            async def message(data):
+                await pro_callback(data, sio, url)
+
+            await sio.connect(url, headers=DEFAULT_HEADERS)
+            print(f"Successfully connected to {url}. Listening for messages...")
+
+            # Keep connection alive until disconnected
+            await sio.wait()
         except KeyboardInterrupt:
             # Allow graceful exit on Ctrl+C.
             print("Exiting due to KeyboardInterrupt.")
