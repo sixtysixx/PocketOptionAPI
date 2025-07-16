@@ -33,6 +33,7 @@ class AsyncWebSocketClient:
         self._running = False
         self._event_handlers: Dict[str, List[Callable]] = {}
         self._reconnect_attempts_counter = 0  # To track custom reconnects if needed
+        self._current_url: Optional[str] = None  # Store the current connection URL
 
         # Internal event handlers for socket.io events
         self.sio.on("connect", self._on_sio_connect)
@@ -96,6 +97,7 @@ class AsyncWebSocketClient:
                 )
 
                 if self.sio.connected:
+                    self._current_url = url  # Store the successful connection URL
                     region = self._extract_region_from_url(
                         url
                     )  # Extract from original URL
@@ -175,19 +177,28 @@ class AsyncWebSocketClient:
         # The higher-level client needs to know when the *authentication* is complete.
         # So we update connection info here and _emit_event("connected") will be done
         # by the main client after authentication.
-
-        # Note: self.sio.url holds the *last successfully connected* URL after handshake
         if (
             not self.connection_info
         ):  # If connection_info hasn't been set yet (first connect)
-            region = self._extract_region_from_url(self.sio.eio.url)
-            self.connection_info = ConnectionInfo(
-                url=self.sio.eio.current_url,
-                region=region,
-                status=ConnectionStatus.CONNECTED,
-                connected_at=datetime.now(),
-                reconnect_attempts=self._reconnect_attempts_counter,
-            )
+            if self._current_url:
+                region = self._extract_region_from_url(self._current_url)
+                self.connection_info = ConnectionInfo(
+                    url=self._current_url,
+                    region=region,
+                    status=ConnectionStatus.CONNECTED,
+                    connected_at=datetime.now(),
+                    reconnect_attempts=self._reconnect_attempts_counter,
+                )
+            else:
+                # Fallback if URL is not available
+                logger.warning("Unable to determine connection URL")
+                self.connection_info = ConnectionInfo(
+                    url="unknown",
+                    region="UNKNOWN",
+                    status=ConnectionStatus.CONNECTED,
+                    connected_at=datetime.now(),
+                    reconnect_attempts=self._reconnect_attempts_counter,
+                )
         else:  # On re-connection, update status
             self.connection_info = ConnectionInfo(
                 url=self.connection_info.url,  # Keep original URL
