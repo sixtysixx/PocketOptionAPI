@@ -11,7 +11,7 @@ async def main():
         print("Active Orders:")
         for order in orders:
             print(
-                f"Order ID: {order['id']}, Amount: {order['amount']}, Status: {order['status']}"
+                f"Order ID: {order.order_id}, Amount: {order.amount}, Status: {order.status}"
             )
     else:
         print("No active orders found.")

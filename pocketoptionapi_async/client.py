@@ -199,8 +199,8 @@ class AsyncPocketOptionClient:
         # The main client still needs to await authentication before being truly "connected" for API use.
         # This is just an internal notification from the lower layer.
         self._connection_stats["total_connections"] = (
-            self._websocket.sio.reconnect_attempts + 1
-        )  # type: ignore[attr-defined]
+            self._websocket.sio.eio.attempts + 1 if self._websocket.sio.eio else 1
+        )
         self._connection_stats["connection_start_time"] = datetime.now()
 
     async def _on_websocket_disconnected(self, data: Dict[str, Any]) -> None:
@@ -715,8 +715,8 @@ class AsyncPocketOptionClient:
         stats = {}
         if self._websocket.sio.eio:  # Check if eio client exists
             stats["connected_status"] = self._websocket.sio.eio.state  # Engine.IO state
-            stats["current_url"] = self._websocket.sio.url
-            stats["reconnect_attempts_sio"] = self._websocket.sio.reconnect_attempts
+            stats["current_url"] = self._websocket.sio.eio.current_url if self._websocket.sio.eio.current_url else None
+            stats["reconnect_attempts_sio"] = self._websocket.sio.eio.attempts if self._websocket.sio.eio else 0
 
         stats["is_connected"] = self._websocket.is_connected
 
