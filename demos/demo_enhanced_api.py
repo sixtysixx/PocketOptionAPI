@@ -28,7 +28,7 @@ async def demo_enhanced_features():
     print("=" * 60)
     print()
 
-    # Complete SSID format (as requested)
+    # Complete SSID format
     ssid = r'42["auth",{"session":"n1p5ah5u8t9438rbunpgrq0hlq","isDemo":1,"uid":72645361,"platform":1,"isFastHistory":true}]'
     print("Authentication: Using complete SSID format:")
     print(f"   {ssid[:80]}...")
@@ -39,7 +39,7 @@ async def demo_enhanced_features():
     print("-" * 50)
 
     try:
-        # Create client with complete SSID (as user requested)
+        # Create client with complete SSID
         client = AsyncPocketOptionClient(ssid=ssid, is_demo=True)
 
         print("Success: Client created with parsed components:")

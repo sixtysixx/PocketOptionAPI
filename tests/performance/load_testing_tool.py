@@ -271,7 +271,7 @@ class LoadTester:
 
             # Connect
             connect_start = datetime.now()
-            success = await keep_alive.start_persistent_connection()
+            success = await keep_alive.establish_connection()
             connect_end = datetime.now()
 
             if not success:
@@ -324,6 +324,7 @@ class LoadTester:
         finally:
             if keep_alive:
                 try:
+                    if keep_alive.websocket:
                     await keep_alive.websocket.disconnect()
                 except:
                     pass

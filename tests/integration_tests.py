@@ -121,7 +121,7 @@ class IntegrationTester:
             # Test keep-alive manager
             logger.info("Testing ConnectionKeepAlive...")
             keep_alive = ConnectionKeepAlive(self.ssid, is_demo=True)
-            success = await keep_alive.start_persistent_connection()
+            success = await keep_alive.establish_connection()
             if success:
                 # Test message sending
                 message_sent = await keep_alive.send_message('42["ps"]')
@@ -129,7 +129,8 @@ class IntegrationTester:
                     "connected": True,
                     "message_sent": message_sent,
                 }
-                await keep_alive.websocket.disconnect()
+                if keep_alive.websocket:
+                    await keep_alive.websocket.disconnect()
             else:
                 results["keep_alive"] = {"connected": False, "message_sent": False}
 
@@ -297,7 +298,7 @@ class IntegrationTester:
             )
 
             # Start connection
-            success = await keep_alive.start_persistent_connection()
+            success = await keep_alive.establish_connection()
             if not success:
                 return {
                     "success": False,
@@ -318,7 +319,8 @@ class IntegrationTester:
             # Get statistics
             stats = keep_alive.get_connection_stats()
 
-            await keep_alive.websocket.disconnect()
+            if keep_alive.websocket:
+                    await keep_alive.websocket.disconnect()
 
             # Analyze results
             connected_events = [e for e in events_received if e["type"] == "connected"]

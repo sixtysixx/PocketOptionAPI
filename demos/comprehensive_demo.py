@@ -132,7 +132,7 @@ async def demo_persistent_connection():
         keep_alive.add_event_handler("connected", on_connected)
         keep_alive.add_event_handler("message_received", on_message)
 
-        success = await keep_alive.start_persistent_connection()
+        success = await keep_alive.establish_connection()
         if success:
             logger.success("Success: Keep-alive manager started!")
 
@@ -157,7 +157,9 @@ async def demo_persistent_connection():
                         f"Uptime={stats.get('uptime', 'N/A')}"
                     )
 
-            await keep_alive.websocket.disconnect()
+            if hasattr(keep_alive, 'websocket') and keep_alive.websocket is not None:
+                if keep_alive.websocket:
+                    await keep_alive.websocket.disconnect()
 
         else:
             logger.warning(
@@ -401,11 +403,13 @@ async def demo_error_handling():
 
         keep_alive.add_event_handler("reconnected", on_reconnected)
 
-        success = await keep_alive.start_persistent_connection()
+        success = await keep_alive.establish_connection()
         if success:
             logger.info("Success: Keep-alive started, will auto-reconnect on issues")
             await asyncio.sleep(5)
-            await keep_alive.websocket.disconnect()
+            if keep_alive.websocket:
+                if keep_alive.websocket:
+                    await keep_alive.websocket.disconnect()
         else:
             logger.warning(
                 "Caution: Keep-alive failed to start (expected with demo SSID)"
@@ -691,7 +695,7 @@ async def demo_migration_compatibility():
     logger.info("• Retrieved: Performance optimization features")
 
 
-async def run_comprehensive_demo(ssid: str = None):
+async def run_comprehensive_demo(ssid: str | None = None):
     """Run the comprehensive demo of all features"""
 
     if not ssid:
