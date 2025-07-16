@@ -31,7 +31,7 @@ class PerformanceTester:
             start_time = time.time()
 
             client = AsyncPocketOptionClient(
-                session_id=self.session_id, is_demo=self.is_demo
+                ssid=self.session_id, is_demo=self.is_demo
             )
 
             try:
@@ -69,7 +69,7 @@ class PerformanceTester:
         logger.info(f"Testing order placement performance ({iterations} iterations)")
 
         client = AsyncPocketOptionClient(
-            session_id=self.session_id, is_demo=self.is_demo
+            ssid=self.session_id, is_demo=self.is_demo
         )
 
         order_times = []
@@ -131,7 +131,7 @@ class PerformanceTester:
         logger.info("Testing data retrieval performance")
 
         client = AsyncPocketOptionClient(
-            session_id=self.session_id, is_demo=self.is_demo
+            ssid=self.session_id, is_demo=self.is_demo
         )
 
         operations = {
@@ -190,7 +190,7 @@ class PerformanceTester:
 
         async def perform_operation(operation_id: int):
             client = AsyncPocketOptionClient(
-                session_id=self.session_id, is_demo=self.is_demo
+                ssid=self.session_id, is_demo=self.is_demo
             )
 
             start_time = time.time()
@@ -302,11 +302,12 @@ class PerformanceTester:
         try:
             data_results = await self.test_data_retrieval_performance()
             for operation, stats in data_results.items():
-                report.append(f"  {operation.upper()}:")
-                report.append(f"    Average: {stats['avg_time']:.3f}s")
-                report.append(
-                    f"    Range: {stats['min_time']:.3f}s - {stats['max_time']:.3f}s"
-                )
+                if isinstance(stats, dict):
+                    report.append(f"  {operation.upper()}:")
+                    report.append(f"    Average: {stats['avg_time']:.3f}s")
+                    report.append(
+                        f"    Range: {stats['min_time']:.3f}s - {stats['max_time']:.3f}s"
+                    )
         except Exception as e:
             report.append(f"Error: Data retrieval test error: {e}")
 

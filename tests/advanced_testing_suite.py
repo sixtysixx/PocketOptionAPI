@@ -358,7 +358,7 @@ class AdvancedTestSuite:
             await asyncio.sleep(10)
 
             # Simulate network issues by stopping/starting
-            await keep_alive.stop_persistent_connection()
+            await keep_alive.websocket.disconnect()
             await asyncio.sleep(3)
 
             # Restart and check resilience
@@ -367,7 +367,7 @@ class AdvancedTestSuite:
                 return False
 
             await asyncio.sleep(5)
-            await keep_alive.stop_persistent_connection()
+            await keep_alive.websocket.disconnect()
 
             # Check events
             connected_events = [e for e in events if e["type"] == "connected"]

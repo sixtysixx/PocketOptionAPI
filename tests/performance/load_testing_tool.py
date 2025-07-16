@@ -324,7 +324,7 @@ class LoadTester:
         finally:
             if keep_alive:
                 try:
-                    await keep_alive.stop_persistent_connection()
+                    await keep_alive.websocket.disconnect()
                 except:
                     pass
 
@@ -597,7 +597,7 @@ class LoadTester:
         return recommendations
 
 
-async def run_load_test_demo(ssid: str = None):
+async def run_load_test_demo(ssid: Optional[str] = None):
     """Run load testing demonstration"""
 
     if not ssid:

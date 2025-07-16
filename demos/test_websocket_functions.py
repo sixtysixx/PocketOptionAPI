@@ -290,7 +290,7 @@ async def test_connection_keep_alive():
     finally:
         # Test stopping persistent connection
         logger.info("Attempting to stop persistent connection...")
-        await keep_alive.stop_persistent_connection()
+        await keep_alive.websocket.disconnect()
         logger.info(
             f"ConnectionKeepAlive connected status after stop: {keep_alive.is_connected}"
         )

@@ -157,7 +157,7 @@ async def demo_persistent_connection():
                         f"Uptime={stats.get('uptime', 'N/A')}"
                     )
 
-            await keep_alive.stop_persistent_connection()
+            await keep_alive.websocket.disconnect()
 
         else:
             logger.warning(
@@ -405,7 +405,7 @@ async def demo_error_handling():
         if success:
             logger.info("Success: Keep-alive started, will auto-reconnect on issues")
             await asyncio.sleep(5)
-            await keep_alive.stop_persistent_connection()
+            await keep_alive.websocket.disconnect()
         else:
             logger.warning(
                 "Caution: Keep-alive failed to start (expected with demo SSID)"

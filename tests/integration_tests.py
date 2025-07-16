@@ -129,7 +129,7 @@ class IntegrationTester:
                     "connected": True,
                     "message_sent": message_sent,
                 }
-                await keep_alive.stop_persistent_connection()
+                await keep_alive.websocket.disconnect()
             else:
                 results["keep_alive"] = {"connected": False, "message_sent": False}
 
@@ -318,7 +318,7 @@ class IntegrationTester:
             # Get statistics
             stats = keep_alive.get_connection_stats()
 
-            await keep_alive.stop_persistent_connection()
+            await keep_alive.websocket.disconnect()
 
             # Analyze results
             connected_events = [e for e in events_received if e["type"] == "connected"]
