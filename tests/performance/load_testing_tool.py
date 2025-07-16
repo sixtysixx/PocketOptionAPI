@@ -325,7 +325,7 @@ class LoadTester:
             if keep_alive:
                 try:
                     if keep_alive.websocket:
-                    await keep_alive.websocket.disconnect()
+                        await keep_alive.websocket.disconnect()
                 except:
                     pass
 
