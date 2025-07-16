@@ -1,4 +1,4 @@
-from ..pocketoptionapi_async import AsyncPocketOptionClient
+from pocketoptionapi_async import AsyncPocketOptionClient
 
 
 async def main():
