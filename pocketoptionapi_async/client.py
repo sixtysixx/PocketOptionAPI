@@ -721,7 +721,7 @@ class AsyncPocketOptionClient:
                 else None
             )
             stats["reconnect_attempts_sio"] = (
-                self._websocket.sio.eio.attempts if self._websocket.sio.eio else 0
+                self._websocket.sio.eio.reconnection_attempts if self._websocket.sio.eio else 0
             )
 
         stats["is_connected"] = self._websocket.is_connected

@@ -27,6 +27,7 @@ class AsyncWebSocketClient:
             reconnection_delay_max=30,  # Max delay
             randomization_factor=0.5,  # Jitter factor for reconnection delay
             request_timeout=10,  # Timeout for initial connection attempts
+            attempts=0,
         )
         self.connection_info: Optional[ConnectionInfo] = None
         self.server_time: Optional[ServerTime] = None
