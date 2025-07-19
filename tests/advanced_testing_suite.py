@@ -370,7 +370,7 @@ class AdvancedTestSuite:
 
             await asyncio.sleep(5)
             if keep_alive.websocket:
-                    await keep_alive.websocket.disconnect()
+                await keep_alive.websocket.disconnect()
 
             # Check events
             connected_events = [e for e in events if e["type"] == "connected"]

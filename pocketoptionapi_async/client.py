@@ -715,8 +715,14 @@ class AsyncPocketOptionClient:
         stats = {}
         if self._websocket.sio.eio:  # Check if eio client exists
             stats["connected_status"] = self._websocket.sio.eio.state  # Engine.IO state
-            stats["current_url"] = self._websocket.sio.eio.current_url if self._websocket.sio.eio.current_url else None
-            stats["reconnect_attempts_sio"] = self._websocket.sio.eio.attempts if self._websocket.sio.eio else 0
+            stats["current_url"] = (
+                self._websocket.sio.eio.current_url
+                if self._websocket.sio.eio.current_url
+                else None
+            )
+            stats["reconnect_attempts_sio"] = (
+                self._websocket.sio.eio.attempts if self._websocket.sio.eio else 0
+            )
 
         stats["is_connected"] = self._websocket.is_connected
 

@@ -320,7 +320,7 @@ class IntegrationTester:
             stats = keep_alive.get_connection_stats()
 
             if keep_alive.websocket:
-                    await keep_alive.websocket.disconnect()
+                await keep_alive.websocket.disconnect()
 
             # Analyze results
             connected_events = [e for e in events_received if e["type"] == "connected"]

@@ -157,7 +157,7 @@ async def demo_persistent_connection():
                         f"Uptime={stats.get('uptime', 'N/A')}"
                     )
 
-            if hasattr(keep_alive, 'websocket') and keep_alive.websocket is not None:
+            if hasattr(keep_alive, "websocket") and keep_alive.websocket is not None:
                 if keep_alive.websocket:
                     await keep_alive.websocket.disconnect()
 

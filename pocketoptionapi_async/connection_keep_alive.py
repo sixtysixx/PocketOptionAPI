@@ -519,7 +519,7 @@ async def demo_keep_alive():
         logger.info("Testing: Initiating clean shutdown...")
         if keep_alive.websocket:
             if keep_alive.websocket:
-                    await keep_alive.websocket.disconnect()
+                await keep_alive.websocket.disconnect()
         logger.info("Testing: Demo finished.")
 
 
