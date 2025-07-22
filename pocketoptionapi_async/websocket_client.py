@@ -279,8 +279,8 @@ class AsyncWebSocketClient:
                 await self._emit_event("authenticated", event_data)
             #elif event_type == "balance_data":
             #    await self._emit_event("balance_data", event_data)
-            #elif event_type == "balance_updated":
-            #    await self._emit_event("balance_updated", event_data)
+            elif event_type == "successupdateBalance": #maybe????
+                await self._emit_event("successupdateBalance", event_data) 
             # {"isDemo":1,"balance":26756.77} (how tf do i do this shit)
             elif event_type == "successopenOrder":
                 await self._emit_event("successopenOrder", event_data)

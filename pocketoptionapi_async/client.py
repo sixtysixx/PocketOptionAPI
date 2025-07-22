@@ -276,10 +276,10 @@ class AsyncPocketOptionClient:
             "authenticated", self._on_authenticated
         )  # Direct from websocket
         self._websocket.add_event_handler("balance_data", self._on_balance_data)
-        self._websocket.add_event_handler("balance_updated", self._on_balance_updated)
-        self._websocket.add_event_handler("order_opened", self._on_order_opened)
-        self._websocket.add_event_handler("order_closed", self._on_order_closed)
-        self._websocket.add_event_handler("stream_update", self._on_stream_update)
+        self._websocket.add_event_handler("successupdateBalance", self._on_balance_updated)
+        self._websocket.add_event_handler("successopenOrder", self._on_order_opened)
+        self._websocket.add_event_handler("successcloseOrder", self._on_order_closed)
+        self._websocket.add_event_handler("updateStream", self._on_stream_update)
         self._websocket.add_event_handler("candles_received", self._on_candles_received)
         self._websocket.add_event_handler("json_data", self._on_json_data)
         self._websocket.add_event_handler("payout_update", self._on_payout_update)
