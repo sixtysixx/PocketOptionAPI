@@ -356,10 +356,6 @@ class AsyncWebSocketClient:
                 return parts.replace("api-", "").upper()
             elif "demo" in parts:
                 return "DEMO"
-            elif "chat-po" in parts:  # Added for the specific HAR file example
-                return "CHAT_PO"
-            elif "events-po" in parts:  # Added for the specific HAR file example
-                return "EVENTS_PO"
             elif "try-demo" in parts:
                 return "DEMO_2"
             else:
