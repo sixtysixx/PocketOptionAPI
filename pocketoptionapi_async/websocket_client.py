@@ -270,19 +270,24 @@ class AsyncWebSocketClient:
             event_type = data[0]
             event_data = data[1] if len(data) > 1 else {}
 
+            # Log all received events for diagnostic purposes
+            logger.info(f"Received Socket.IO event: {event_type} with data: {event_data}")
+
             # Explicitly map common PocketOption events
             if event_type == "successauth":
+                logger.success("Authentication successful - received 'successauth' event")
                 await self._emit_event("authenticated", event_data)
-            elif event_type == "balance_data":
-                await self._emit_event("balance_data", event_data)
-            elif event_type == "balance_updated":
-                await self._emit_event("balance_updated", event_data)
-            elif event_type == "order_opened":
-                await self._emit_event("order_opened", event_data)
-            elif event_type == "order_closed":
-                await self._emit_event("order_closed", event_data)
-            elif event_type == "stream_update":
-                await self._emit_event("stream_update", event_data)
+            #elif event_type == "balance_data":
+            #    await self._emit_event("balance_data", event_data)
+            #elif event_type == "balance_updated":
+            #    await self._emit_event("balance_updated", event_data)
+            # {"isDemo":1,"balance":26756.77} (how tf do i do this shit)
+            elif event_type == "successopenOrder":
+                await self._emit_event("successopenOrder", event_data)
+            elif event_type == "successcloseOrder":
+                await self._emit_event("successcloseOrder", event_data)
+            elif event_type == "updateStream":
+                await self._emit_event("updateStream", event_data)
             elif event_type == "loadHistoryPeriod":
                 await self._emit_event("candles_received", event_data)
             elif event_type == "payout_update":
@@ -291,8 +296,12 @@ class AsyncWebSocketClient:
                 await self._emit_event("payout_update", event_data)
             elif event_type == "updateHistoryNew":
                 await self._emit_event("history_update", event_data)
+            elif event_type == "autherror":
+                logger.error(f"Authentication error received: {event_data}")
+                await self._emit_event("auth_error", event_data)
             else:
                 # Fallback for unrecognized Socket.IO events
+                logger.debug(f"Unrecognized event type: {event_type}")
                 await self._emit_event(
                     "unknown_event", {"type": event_type, "data": event_data}
                 )

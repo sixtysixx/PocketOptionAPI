@@ -744,25 +744,50 @@ class AsyncPocketOptionClient:
     async def _wait_for_authentication(self, timeout: float = 10.0) -> None:
         """Wait for authentication to complete, using an internal event."""
         auth_received_event = asyncio.Event()
+        
+        # Diagnostic logging for authentication flow
+        logger.info(f"Starting authentication wait (timeout={timeout}s)")
+        
+        # Check if we're using a test SSID
+        ssid_info = getattr(self, '_ssid', 'Unknown')
+        if str(ssid_info).startswith('fake-'):
+            logger.warning(
+                f"Using test SSID '{ssid_info}': Authentication will timeout. "
+                f"Use real SSID from browser developer tools for successful authentication."
+            )
+        else:
+            logger.debug(f"Using SSID: {ssid_info[:8]}...")  # Log first 8 chars only for security
 
         def on_auth_success(data):
+            logger.success("Received 'authenticated' event - authentication successful!")
+            logger.debug(f"Authentication data: {data}")
             auth_received_event.set()
 
-        # Temporarily add a handler to the client's internal event system
-        # Call public method for event callbacks
-        self.add_event_callback("authenticated", on_auth_success)  #
+        def on_auth_error(data):
+            logger.error(f"Received 'autherror' event - authentication failed: {data}")
+            auth_received_event.set()  # Set to prevent hanging
+
+        # Temporarily add handlers to the client's internal event system
+        self.add_event_callback("authenticated", on_auth_success)
+        self.add_event_callback("autherror", on_auth_error)
 
         try:
+            logger.debug("Waiting for authentication response...")
             await asyncio.wait_for(auth_received_event.wait(), timeout=timeout)
             logger.success("Authentication completed successfully.")
         except asyncio.TimeoutError:
             logger.error(
-                "Authentication timeout: Did not receive 'authenticated' event."
+                f"Authentication timeout: Did not receive 'authenticated' or 'autherror' event "
+                f"within {timeout} seconds. This is expected behavior with test SSIDs (fake-*)."
+            )
+            logger.info(
+                "To resolve: Use real SSID from browser developer tools instead of test SSIDs."
             )
             raise AuthenticationError("Authentication timeout")
         finally:
-            # Call public method for event callbacks
-            self.remove_event_callback("authenticated", on_auth_success)  #
+            # Remove temporary handlers
+            self.remove_event_callback("authenticated", on_auth_success)
+            self.remove_event_callback("autherror", on_auth_error)
 
     async def _initialize_data(self) -> None:
         """Initialize client data after connection and authentication."""
