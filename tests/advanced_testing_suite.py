@@ -8,7 +8,7 @@ import time
 import random
 import json
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from loguru import logger
 
 from pocketoptionapi_async.client import AsyncPocketOptionClient
@@ -567,7 +567,7 @@ class AdvancedTestSuite:
         return report
 
 
-async def run_advanced_tests(ssid: str = None):
+async def run_advanced_tests(ssid: Optional[str] = None):
     """Run the advanced testing suite"""
 
     if not ssid:
