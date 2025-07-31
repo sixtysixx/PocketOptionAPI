@@ -68,7 +68,7 @@ async def test_candles_retrieval():
             print(f"DataFrame test failed: {e}")
 
         # Test 3: Different timeframes
-        print("\n⏱️ Testing different timeframes...")
+        print("\nTesting different timeframes...")
         timeframes_to_test = [(60, "1 minute"), (300, "5 minutes"), (900, "15 minutes")]
 
         for tf_seconds, tf_name in timeframes_to_test:
@@ -81,7 +81,7 @@ async def test_candles_retrieval():
             except Exception as e:
                 print(f"{tf_name}: Error - {e}")
 
-        print("\n🔍 Testing different assets...")
+        print("\nTesting different assets...")
         assets_to_test = ["EURUSD", "GBPUSD", "USDJPY"]
 
         for test_asset in assets_to_test:
@@ -116,7 +116,7 @@ async def test_candles_retrieval():
 async def test_candles_message_format():
     """Test the message format being sent"""
 
-    print("\n🔍 Testing Message Format")
+    print("\nTesting Message Format")
     print("=" * 30)
 
     # Simulate the message creation

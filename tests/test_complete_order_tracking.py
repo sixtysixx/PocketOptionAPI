@@ -29,8 +29,7 @@ async def wait_for_trade_completion():
     client = AsyncPocketOptionClient(ssid, is_demo=True)
 
     try:
-        # Connect
-        print("📡 Connecting...")
+        print("Connecting...")
         await client.connect()
 
         if not client.is_connected:
@@ -74,13 +73,13 @@ async def wait_for_trade_completion():
             duration=60,  # 1 minute for quick testing
         )
 
-        print(f" Order placed: {order_result.order_id}")
-        print(f"   Status: {order_result.status}")
-        print(f"   Asset: {order_result.asset}")
-        print(f"   Amount: ${order_result.amount}")
-        print(f"   Direction: {order_result.direction}")
-        print(f"   Duration: {order_result.duration}s")
-        print(f"   Expires at: {order_result.expires_at.strftime('%H:%M:%S')}")
+        print(f"Order placed: {order_result.order_id}")
+        print(f"Status: {order_result.status}")
+        print(f"Asset: {order_result.asset}")
+        print(f"Amount: ${order_result.amount}")
+        print(f"Direction: {order_result.direction}")
+        print(f"Duration: {order_result.duration}s")
+        print(f"Expires at: {order_result.expires_at.strftime('%H:%M:%S')}")
 
         # Check immediate order result
         immediate_result = await client.check_order_result(order_result.order_id)
@@ -92,7 +91,7 @@ async def wait_for_trade_completion():
 
         # Wait for the trade to complete
         print(
-            f"\n⏱️ Waiting for trade to complete (up to {order_result.duration + 30} seconds)..."
+            f"\nWaiting for trade to complete (up to {order_result.duration + 30} seconds)..."
         )
         start_time = datetime.now()
         max_wait = timedelta(
@@ -127,10 +126,10 @@ async def wait_for_trade_completion():
                         else "EVEN"
                     )
                     print("\nTRADE COMPLETED!")
-                    print(f"   Result: {win_lose}")
-                    print(f"   Profit/Loss: ${result.profit:.2f}")
+                    print(f"Result: {win_lose}")
+                    print(f"Profit/Loss: ${result.profit:.2f}")
                     if result.payout:
-                        print(f"   Payout: ${result.payout:.2f}")
+                        print(f"Payout: ${result.payout:.2f}")
 
                     # Calculate percentage return
                     if result.profit != 0:
@@ -141,12 +140,10 @@ async def wait_for_trade_completion():
 
                 # Check if status indicates completion but no profit yet
                 elif result.status in ["win", "lose", "closed"]:
-                    print(
-                        f"   Order marked as {result.status} but no profit data yet..."
-                    )
+                    print(f"Order marked as {result.status} but no profit data yet...")
 
             else:
-                print("   Order disappeared from tracking system")
+                print("Order disappeared from tracking system")
                 break
 
             await asyncio.sleep(2)  # Check every 2 seconds
@@ -155,18 +152,18 @@ async def wait_for_trade_completion():
         if completed_orders:
             print("\n Order completion detected via event callback!")
             final_order = completed_orders[0]
-            print(f"   Final profit: ${final_order.profit:.2f}")
+            print(f"Final profit: ${final_order.profit:.2f}")
 
         # Final status check
         final_result = await client.check_order_result(order_result.order_id)
         if final_result:
             print("\nFinal status:")
-            print(f"   Order ID: {final_result.order_id}")
-            print(f"   Status: {final_result.status}")
+            print(f"Order ID: {final_result.order_id}")
+            print(f"Status: {final_result.status}")
             if final_result.profit is not None:
-                print(f"   Final Profit/Loss: ${final_result.profit:.2f}")
+                print(f"Final Profit/Loss: ${final_result.profit:.2f}")
             else:
-                print("   No profit data available (may indicate tracking issue)")
+                print("No profit data available (may indicate tracking issue)")
         else:
             print("\nCould not find final order result")
 

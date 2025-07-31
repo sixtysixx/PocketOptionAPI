@@ -28,7 +28,7 @@ async def test_balance_fix():
         def on_balance_updated(balance):
             nonlocal balance_received
             balance_received = True
-            logger.success(f" Balance callback triggered: ${balance.balance:.2f}")
+            logger.success(f"Balance callback triggered: ${balance.balance:.2f}")
 
         client.add_event_callback("balance_updated", on_balance_updated)
 
@@ -46,9 +46,9 @@ async def test_balance_fix():
                         logger.success(
                             f" Balance retrieved successfully: ${balance.balance:.2f}"
                         )
-                        logger.info(f"   Currency: {balance.currency}")
-                        logger.info(f"   Demo: {balance.is_demo}")
-                        logger.info(f"   Last updated: {balance.last_updated}")
+                        logger.info(f"Currency: {balance.currency}")
+                        logger.info(f"Demo: {balance.is_demo}")
+                        logger.info(f"Last updated: {balance.last_updated}")
                     else:
                         logger.error("Balance is None - issue still exists")
 
@@ -56,7 +56,7 @@ async def test_balance_fix():
                     logger.error(f"Balance retrieval failed: {e}")
 
                 # Wait for balance events
-                logger.info("⏳ Waiting for balance events...")
+                logger.info("Waiting for balance events...")
                 await asyncio.sleep(5)
 
                 if balance_received:
@@ -78,7 +78,7 @@ async def test_balance_fix():
         return False
 
     logger.info("=" * 50)
-    logger.success(" Balance fix test completed!")
+    logger.success("Balance test completed!")
     return True
 
 

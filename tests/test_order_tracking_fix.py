@@ -28,7 +28,7 @@ async def test_order_tracking():
 
     try:
         # Connect
-        print("📡 Connecting...")
+        print("Connecting...")
         await client.connect()
 
         if not client.is_connected:
@@ -61,15 +61,15 @@ async def test_order_tracking():
         print(f"   Duration: {order_result.duration}s")
 
         # Test order result checking - should return the active order immediately
-        print("\n🔍 Checking order result immediately...")
+        print("\nChecking order result immediately...")
         immediate_result = await client.check_order_result(order_result.order_id)
 
         if immediate_result:
-            print(" Order found in tracking system:")
-            print(f"   Order ID: {immediate_result.order_id}")
-            print(f"   Status: {immediate_result.status}")
-            print(f"   Placed at: {immediate_result.placed_at}")
-            print(f"   Expires at: {immediate_result.expires_at}")
+            print("Order found in tracking system:")
+            print(f"Order ID: {immediate_result.order_id}")
+            print(f"Status: {immediate_result.status}")
+            print(f"Placed at: {immediate_result.placed_at}")
+            print(f"Expires at: {immediate_result.expires_at}")
         else:
             print("Order NOT found in tracking system")
             return
@@ -83,7 +83,7 @@ async def test_order_tracking():
             print(f"   - {order.order_id}: {order.status} ({order.asset})")
 
         # Test tracking over time
-        print("\n⏱️ Monitoring order for 30 seconds...")
+        print("\nMonitoring order for 30 seconds...")
         start_time = datetime.now()
 
         while (datetime.now() - start_time).total_seconds() < 30:
@@ -102,10 +102,10 @@ async def test_order_tracking():
                 # If order completed, show result
                 if result.profit is not None:
                     win_lose = "WIN" if result.profit > 0 else "LOSE"
-                    print(f"   Final result: {win_lose} - Profit: ${result.profit:.2f}")
+                    print(f"Final result: {win_lose} - Profit: ${result.profit:.2f}")
                     break
             else:
-                print("   Order not found in tracking")
+                print("Order not found in tracking")
                 break
 
             await asyncio.sleep(5)  # Check every 5 seconds

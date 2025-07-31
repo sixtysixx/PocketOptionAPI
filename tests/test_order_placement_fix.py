@@ -33,7 +33,7 @@ async def test_order_placement_fix():
 
     try:
         # Test order creation (this should not fail with the attribute error anymore)
-        logger.info("📝 Testing Order model creation...")
+        logger.info("Testing Order model creation...")
 
         # This should work now (Order uses request_id)
         from pocketoptionapi_async.models import Order
@@ -52,7 +52,7 @@ async def test_order_placement_fix():
 
         # Test that the order doesn't have order_id attribute
         if not hasattr(test_order, "order_id"):
-            logger.success(" Order correctly uses request_id instead of order_id")
+            logger.success("Order correctly uses request_id instead of order_id")
         else:
             logger.error("Order still has order_id attribute - this should not exist")
 
@@ -91,7 +91,7 @@ async def test_order_placement_fix():
             else:
                 logger.warning("Could not connect (expected with placeholder SSID)")
 
-        logger.success("🎉 Order placement fix test completed!")
+        logger.success("Order placement fix test completed!")
 
     except Exception as e:
         logger.error(f"Test failed: {e}")

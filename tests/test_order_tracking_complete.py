@@ -100,8 +100,8 @@ async def test_complete_order_lifecycle():
         immediate_result = await client.check_order_result(order_result.order_id)
         if immediate_result:
             print(" Order immediately found in tracking system")
-            print(f"   ID: {immediate_result.order_id}")
-            print(f"   Status: {immediate_result.status}")
+            print(f"ID: {immediate_result.order_id}")
+            print(f"Status: {immediate_result.status}")
         else:
             print("Order NOT found in tracking system - this is a problem!")
             return
@@ -133,7 +133,7 @@ async def test_complete_order_lifecycle():
         print("-" * 50)
 
         print(
-            f"⏱️ Waiting for trade to complete (up to {order_result.duration + 30} seconds)..."
+            f"Waiting for trade to complete (up to {order_result.duration + 30} seconds)..."
         )
         start_time = datetime.now()
         max_wait = timedelta(
@@ -168,26 +168,24 @@ async def test_complete_order_lifecycle():
                         else "EVEN"
                     )
                     print("\nTRADE COMPLETED!")
-                    print(f"   Result: {win_lose}")
-                    print(f"   Profit/Loss: ${result.profit:.2f}")
+                    print(f"Result: {win_lose}")
+                    print(f"Profit/Loss: ${result.profit:.2f}")
                     if result.payout:
-                        print(f"   Payout: ${result.payout:.2f}")
+                        print(f"Payout: ${result.payout:.2f}")
 
                     # Calculate percentage return
                     if result.profit != 0:
                         percentage = (result.profit / order_result.amount) * 100
-                        print(f"   Return: {percentage:.1f}%")
+                        print(f"Return: {percentage:.1f}%")
 
                     break
 
                 # Check if status indicates completion but no profit yet
                 elif result.status in ["win", "lose", "closed"]:
-                    print(
-                        f"   Order marked as {result.status} but no profit data yet..."
-                    )
+                    print(f"Order marked as {result.status} but no profit data yet...")
 
             else:
-                print("   Order disappeared from tracking system")
+                print("Order disappeared from tracking system")
                 break
 
             await asyncio.sleep(2)  # Check every 2 seconds
@@ -198,18 +196,18 @@ async def test_complete_order_lifecycle():
 
         # Check if we completed via event callback
         if completed_orders:
-            print(" Order completion detected via EVENT callback!")
+            print("Order completion detected via EVENT callback!")
             final_order_event = completed_orders[0]
-            print(f"   Event Result - Profit: ${final_order_event.profit:.2f}")
+            print(f"Event Result - Profit: ${final_order_event.profit:.2f}")
         else:
             print("No completion event received")
 
         # Check final polling result
         final_result_poll = await client.check_order_result(order_result.order_id)
         if final_result_poll:
-            print(" Order completion detected via POLLING!")
+            print("Order completion detected via POLLING!")
             print(
-                f"   Polling Result - Profit: ${final_result_poll.profit:.2f if final_result_poll.profit is not None else 'None'}"
+                f"Polling Result - Profit: ${final_result_poll.profit:.2f if final_result_poll.profit is not None else 'None'}"
             )
         else:
             print("Order not found via polling")
@@ -223,7 +221,7 @@ async def test_complete_order_lifecycle():
         print(f"Final active orders: {len(final_active_orders)}")
 
         for order in final_active_orders:
-            print(f"   Active: {order.order_id} - {order.status}")
+            print(f"Active: {order.order_id} - {order.status}")
 
         # Show test summary
         print("\nTEST SUMMARY")

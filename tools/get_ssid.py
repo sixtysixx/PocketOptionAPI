@@ -1,17 +1,14 @@
-import os  # For interacting with the file system (e.g., .env file).
-import time  # For introducing a necessary delay for WebSocket communication.
-import re  # For using regular expressions to find the target auth message.
-import logging  # For providing structured, informative output.
-import argparse  # For parsing command-line arguments.
-from typing import Callable, Optional, List  # For type hinting to improve code clarity.
+import os
+import time
+import re
+import logging
+import argparse
+from typing import Callable, Optional, List
 
-# Selenium imports for web browser automation and waiting for conditions.
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException, WebDriverException
 
-# Local import for the WebDriver setup.
-# Assumption: A 'driver.py' file exists with a 'get_driver' function.
 from driver import get_driver
 
 # Section: Logging Configuration
@@ -138,7 +135,7 @@ def get_pocketoption_ssid(
         logger.info("Injected WebSocket interception script.")
 
         # Navigate to a page known to trigger the required WebSocket authentication.
-        target_url = "https://pocketoption.com/en/cabinet/demo-quick-high-low/"
+        target_url = "https://pocketoption.com/en/cabinet/quick-high-low/"  # https://pocketoption.com/en/cabinet/demo-quick-high-low/
         logger.info(f"Navigating to: {target_url}")
         driver.get(target_url)
 

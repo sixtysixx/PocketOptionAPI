@@ -99,8 +99,8 @@ async def test_ssid_formats():
     auth_data1 = extract_auth_data(formatted_message1)
     auth_data2 = extract_auth_data(formatted_message2)
 
-    print(f"  Auth data from Complete SSID client: {auth_data1}")
-    print(f"  Auth data from Raw Session client:   {auth_data2}")
+    print(f"Auth data from Complete SSID client: {auth_data1}")
+    print(f"Auth data from Raw Session client: {auth_data2}")
 
     # Compare key fields to ensure they are identical.
     fields_to_compare = ["session", "isDemo", "uid", "platform", "isFastHistory"]
@@ -120,8 +120,8 @@ async def test_ssid_formats():
 
     # Test 4: Test connection with a realistic SSID format (mock connection attempt)
     print("\n--- Test 4: Simulating Connection with Complete SSID ---")
-    print("  Note: This connection attempt will likely fail as it uses dummy data,")
-    print("        but it demonstrates the client's ability to use the formatted SSID.")
+    print("Note: This connection attempt will likely fail as it uses dummy data,")
+    print("but it demonstrates the client's ability to use the formatted SSID.")
 
     try:
         # Attempt to connect. This will use `formatted_message1` for authentication.

@@ -45,7 +45,7 @@ class IntegrationTester:
         ]
 
         for phase_name, phase_func in test_phases:
-            logger.info(f"\n🔍 {phase_name}")
+            logger.info(f"\n{phase_name}")
             logger.info("-" * 40)
 
             try:
@@ -73,7 +73,7 @@ class IntegrationTester:
                     "duration": 0,
                     "error": str(e),
                 }
-                logger.error(f"💥 {phase_name}: ERROR - {e}")
+                logger.error(f"{phase_name}: ERROR - {e}")
 
         return self._generate_integration_report()
 
@@ -915,14 +915,14 @@ async def run_integration_tests(ssid: str = None):
 
         # Print comprehensive summary
         logger.info("\n" + "=" * 60)
-        logger.info("🏁 INTEGRATION TEST SUMMARY")
+        logger.info("INTEGRATION TEST SUMMARY")
         logger.info("=" * 60)
 
         summary = report["integration_summary"]
         logger.info(f"Tests Executed: {summary['total_tests']}")
-        logger.info(f"Passed: {summary['passed_tests']} ")
-        logger.info(f"Failed: {summary['failed_tests']} ❌")
-        logger.info(f"Errors: {summary['error_tests']} 💥")
+        logger.info(f"Passed: {summary['passed_tests']}")
+        logger.info(f"Failed: {summary['failed_tests']}")
+        logger.info(f"Errors: {summary['error_tests']}")
         logger.info(f"Success Rate: {summary['success_rate']:.1%}")
         logger.info(
             f"Health Score: {summary['health_score']:.1f}/100 ({summary['health_status']})"
@@ -940,7 +940,7 @@ async def run_integration_tests(ssid: str = None):
             )
 
         # Recommendations
-        logger.info("\n💡 RECOMMENDATIONS")
+        logger.info("\nRECOMMENDATIONS")
         logger.info("-" * 30)
         for i, rec in enumerate(report["recommendations"], 1):
             logger.info(f"{i}. {rec}")
@@ -952,14 +952,14 @@ async def run_integration_tests(ssid: str = None):
         with open(report_file, "w") as f:
             json.dump(report, f, indent=2, default=str)
 
-        logger.info(f"\n📄 Detailed report saved to: {report_file}")
+        logger.info(f"\nDetailed report saved to: {report_file}")
 
         # Final verdict
         if summary["health_score"] >= 90:
-            logger.success("🎉 EXCELLENT: System is performing exceptionally well!")
+            logger.success("EXCELLENT: System is performing exceptionally well!")
         elif summary["health_score"] >= 80:
             logger.info(
-                "👍 GOOD: System is performing well with minor areas for improvement"
+                "GOOD: System is performing well with minor areas for improvement"
             )
         elif summary["health_score"] >= 60:
             logger.warning("FAIR: System has some issues that should be addressed")

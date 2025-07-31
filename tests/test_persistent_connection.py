@@ -98,7 +98,7 @@ async def test_persistent_connection():
 
         def on_connected(data):
             connection_events.append(f"Connected: {data}")
-            print(f"🎉 Event: Connected to {data}")
+            print(f"Event: Connected to {data}")
 
         def on_reconnected(data):
             connection_events.append(f"Reconnected: {data}")
@@ -129,7 +129,7 @@ async def test_persistent_connection():
                 if i % 15 == 0 and i > 0:
                     stats = client_persistent.get_connection_stats()
                     print(
-                        f"   Stats: Connected={client_persistent.is_connected}, "
+                        f"Stats: Connected={client_persistent.is_connected}, "
                         f"Pings={stats.get('last_ping_time')}, "
                         f"Messages sent={stats.get('messages_sent', 0)}, "
                         f"Messages received={stats.get('messages_received', 0)}, "
@@ -179,7 +179,7 @@ async def test_persistent_connection():
 
     real_ssid = os.getenv("POCKET_OPTION_SSID")
     if real_ssid and "n1p5ah5u8t9438rbunpgrq0hlq" not in real_ssid:
-        print("🔑 Real SSID detected, testing with actual connection...")
+        print("Real SSID detected, testing with actual connection...")
 
         try:
             resilience_client = AsyncPocketOptionClient(
@@ -193,7 +193,7 @@ async def test_persistent_connection():
             success = await resilience_client.connect()
 
             if success:
-                print(" Resilient connection established")
+                print("Resilient connection established")
 
                 # Monitor for 2 minutes
                 print("Monitoring resilient connection for 2 minutes...")
@@ -225,7 +225,7 @@ async def test_persistent_connection():
         print(" Skipping resilience test (requires real SSID)")
 
     print()
-    print("🎉 All persistent connection tests completed!")
+    print("All persistent connection tests completed!")
     print()
     print("Summary of Enhanced Features:")
     print(" Persistent connections with automatic keep-alive")
@@ -235,7 +235,7 @@ async def test_persistent_connection():
     print(" Event-driven connection management")
     print(" Graceful connection cleanup and resource management")
     print()
-    print("💡 Usage Tips:")
+    print("Usage Tips:")
     print("• Use persistent_connection=True for long-running applications")
     print("• Set auto_reconnect=True for automatic recovery from disconnections")
     print("• Monitor connection statistics with get_connection_stats()")
@@ -259,15 +259,15 @@ async def test_comparison_with_old_api():
     print()
 
     print("Enhanced Features in New API:")
-    print("✨ Type safety with Pydantic models")
-    print("✨ Comprehensive error monitoring and health checks")
-    print("✨ Event-driven architecture with callbacks")
-    print("✨ Connection pooling and performance optimization")
-    print("✨ Graceful shutdown and resource cleanup")
-    print("✨ Modern async/await patterns")
-    print("✨ Built-in rate limiting and message batching")
-    print("✨ pandas DataFrame integration")
-    print("✨ Rich logging and debugging information")
+    print("Type safety with Pydantic models")
+    print("Comprehensive error monitoring and health checks")
+    print("Event-driven architecture with callbacks")
+    print("Connection pooling and performance optimization")
+    print("Graceful shutdown and resource cleanup")
+    print("Modern async/await patterns")
+    print("Built-in rate limiting and message batching")
+    print("pandas DataFrame integration")
+    print("Rich logging and debugging information")
 
 
 if __name__ == "__main__":

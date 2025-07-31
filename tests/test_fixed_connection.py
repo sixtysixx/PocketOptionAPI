@@ -38,10 +38,10 @@ async def test_connection_fix():
         )
 
         print(" Client created successfully")
-        print(f"🔍 Session ID: {client.session_id}")
-        print(f"👤 UID: {client.uid}")
+        print(f"Session ID: {client.session_id}")
+        print(f"UID: {client.uid}")
         print(f"Demo mode: {client.is_demo}")
-        print(f"🏷️  Platform: {client.platform}")
+        print(f"Platform: {client.platform}")
         print()
 
         # Test connection
@@ -84,7 +84,7 @@ async def test_connection_fix():
 
         finally:
             await client.disconnect()
-            print("🛑 Disconnected")
+            print("Disconnected")
 
     except Exception as e:
         print(f"Test error: {e}")
@@ -140,9 +140,7 @@ async def main():
     print("=" * 60)
     if success:
         print(" CONNECTION FIX VERIFICATION COMPLETE")
-        print(
-            "📝 The new async API now follows the same handshake pattern as the old API"
-        )
+        print("The new async API now follows the same handshake pattern as the old API")
         print("Key improvements:")
         print("   • Proper server response waiting")
         print("   • Sequential handshake messages")

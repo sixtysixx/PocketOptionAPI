@@ -26,15 +26,14 @@ async def test_fixes():
     client_with_logs = AsyncPocketOptionClient(ssid, is_demo=True, enable_logging=True)
 
     try:
-        # Connect
-        print("📡 Connecting...")
+        print("Connecting...")
         await client_with_logs.connect()
 
         if not client_with_logs.is_connected:
             print("Failed to connect")
             return
 
-        print(" Connected successfully")
+        print("Connected successfully")
 
         # Wait for initialization
         await asyncio.sleep(3)
@@ -51,8 +50,8 @@ async def test_fixes():
         )
 
         print(f"Order placed: {order_result.order_id}")
-        print(f"   Status: {order_result.status}")
-        print(f"   Error Message: {order_result.error_message or 'None'}")
+        print(f"Status: {order_result.status}")
+        print(f"Error Message: {order_result.error_message or 'None'}")
 
         # Check if order is properly tracked
         immediate_result = await client_with_logs.check_order_result(
@@ -84,14 +83,14 @@ async def test_fixes():
 
     try:
         # Connect (should be much quieter)
-        print("📡 Connecting (quietly)...")
+        print("Connecting (quietly)...")
         await client_no_logs.connect()
 
         if not client_no_logs.is_connected:
             print("Failed to connect")
             return
 
-        print(" Connected successfully (no logs)")
+        print("Connected successfully (no logs)")
 
         # Wait for initialization
         await asyncio.sleep(3)
@@ -108,15 +107,15 @@ async def test_fixes():
         )
 
         print(f"Order placed: {order_result.order_id}")
-        print(f"   Status: {order_result.status}")
-        print(f"   Error Message: {order_result.error_message or 'None'}")
+        print(f"Status: {order_result.status}")
+        print(f"Error Message: {order_result.error_message or 'None'}")
 
         # Check if order is properly tracked
         immediate_result = await client_no_logs.check_order_result(
             order_result.order_id
         )
         if immediate_result:
-            print(" Order found in tracking system (silent mode)")
+            print("Order found in tracking system (silent mode)")
         else:
             print("Order NOT found in tracking")
 

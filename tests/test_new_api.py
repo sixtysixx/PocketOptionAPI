@@ -174,7 +174,7 @@ async def test_context_manager():
 async def test_event_callbacks():
     """Test event callback system"""
 
-    print("\n📡 Testing event callbacks...")
+    print("\nTesting event callbacks...")
 
     session_id = "n1p5ah5u8t9438rbunpgrq0hlq"
     client = AsyncPocketOptionClient(session_id, is_demo=True)
@@ -225,7 +225,7 @@ def print_api_features():
     print("  - 25+ Stock Indices")
     print("  - 50+ Individual Stocks")
 
-    print("\n⚡ PERFORMANCE IMPROVEMENTS:")
+    print("\nPERFORMANCE IMPROVEMENTS:")
     print("  - Non-blocking async operations")
     print("  - Concurrent order management")
     print("  - Efficient WebSocket handling")

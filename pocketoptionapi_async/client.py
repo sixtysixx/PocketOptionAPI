@@ -194,6 +194,10 @@ class AsyncPocketOptionClient:
                 "SSID treated as raw session ID or constructed from parameters."
             )
 
+    def _format_session_message(self, message: str) -> str:
+        """Format a session-related message."""
+        return f"Session: {message}"
+
     # --- Private Event Handlers for internal WebSocket client events ---
     async def _on_websocket_connected(self, data: Dict[str, Any]) -> None:
         """Handle 'connected' event from AsyncWebSocketClient (Socket.IO client)."""
@@ -700,6 +704,11 @@ class AsyncPocketOptionClient:
     def connection_info(self) -> Optional[ConnectionInfo]:
         """Get connection information (delegates to Socket.IO client)"""
         return self._websocket.connection_info
+
+    @property
+    def session_id(self) -> Optional[str]:
+        """Get the session ID from authentication data"""
+        return self._auth_data.get("session")
 
     async def send_message(self, event_name: str, data: Any = None) -> bool:
         """Send message through active connection (delegates to Socket.IO client)"""

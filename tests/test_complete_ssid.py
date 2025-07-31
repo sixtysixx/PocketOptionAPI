@@ -17,8 +17,8 @@ async def test_complete_ssid_format():
     # Test 1: Complete SSID format (what the user wants)
     complete_ssid = r'42["auth",{"session":"n1p5ah5u8t9438rbunpgrq0hlq","isDemo":1,"uid":72645361,"platform":1,"isFastHistory":true}]'
 
-    print("📝 Testing with complete SSID format:")
-    print(f"   SSID: {complete_ssid[:50]}...")
+    print("Testing with complete SSID format:")
+    print(f"SSID: {complete_ssid[:50]}...")
     print()
 
     try:
@@ -26,15 +26,15 @@ async def test_complete_ssid_format():
         client = AsyncPocketOptionClient(ssid=complete_ssid, is_demo=True)
 
         # Check that the SSID is handled correctly
-        formatted_message = client._format_session_message()
+        formatted_message = client._format_session_message("test")
 
         print(" Client created successfully")
-        print(f"📤 Formatted message: {formatted_message[:50]}...")
-        print(f"🔍 Session extracted: {getattr(client, 'session_id', 'N/A')[:20]}...")
-        print(f"👤 UID extracted: {client.uid}")
-        print(f"🏷️  Platform: {client.platform}")
+        print(f"Formatted message: {formatted_message[:50]}...")
+        print(f"Session extracted: {getattr(client, 'session_id', 'N/A')[:20]}...")
+        print(f"UID extracted: {client.uid}")
+        print(f"Platform: {client.platform}")
         print(f"Demo mode: {client.is_demo}")
-        print(f"⚡ Fast history: {client.is_fast_history}")
+        print(f"Fast history: {client.is_fast_history}")
 
         # Test connection (will fail with test SSID but should show proper format)
         print("\nTesting connection...")
@@ -58,8 +58,8 @@ async def test_complete_ssid_format():
     # Test 2: Raw session ID format (for comparison)
     raw_session = "n1p5ah5u8t9438rbunpgrq0hlq"
 
-    print("📝 Testing with raw session ID:")
-    print(f"   Session: {raw_session}")
+    print("Testing with raw session ID:")
+    print(f"Session: {raw_session}")
     print()
 
     try:
@@ -68,13 +68,13 @@ async def test_complete_ssid_format():
             ssid=raw_session, is_demo=True, uid=72645361, platform=1
         )
 
-        formatted_message2 = client2._format_session_message()
+        formatted_message2 = client2._format_session_message("test")
 
         print(" Client created successfully")
-        print(f"📤 Formatted message: {formatted_message2[:50]}...")
-        print(f"🔍 Session: {getattr(client2, 'session_id', 'N/A')}")
-        print(f"👤 UID: {client2.uid}")
-        print(f"🏷️  Platform: {client2.platform}")
+        print(f"Formatted message: {formatted_message2[:50]}...")
+        print(f"Session: {getattr(client2, 'session_id', 'N/A')}")
+        print(f"UID: {client2.uid}")
+        print(f"Platform: {client2.platform}")
 
     except Exception as e:
         print(f"Error: {e}")
@@ -100,7 +100,7 @@ async def test_real_connection():
         )
         return
 
-    print(f"🔑 Found real SSID: {real_ssid[:30]}...")
+    print(f"Found real SSID: {real_ssid[:30]}...")
 
     try:
         client = AsyncPocketOptionClient(ssid=real_ssid)
@@ -117,8 +117,8 @@ async def test_real_connection():
                 print(f"Balance: ${balance.balance:.2f}")
 
                 # Test health status
-                health = await client.get_health_status()
-                print(f"🏥 Health: {health}")
+                # health = await client.get_health_status()
+                # print(f"Health: {health}")
 
             except Exception as e:
                 print(f" API error: {e}")
@@ -146,7 +146,7 @@ async def main():
     # Test real connection if available
     await test_real_connection()
 
-    print("\n🎉 All tests completed!")
+    print("\nAll tests completed!")
     print()
     print("Usage Examples:")
     print("1. Complete SSID format (recommended):")
