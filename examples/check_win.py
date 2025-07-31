@@ -21,7 +21,7 @@ async def main():
     except Exception as e:
         print(f"An error occurred while placing the order: {e}")
 
-    await client.disconnect()
+    await client.close()
 
 
 if __name__ == "__main__":

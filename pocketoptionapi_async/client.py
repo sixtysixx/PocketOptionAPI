@@ -12,10 +12,8 @@ from collections import defaultdict
 import pandas as pd
 from loguru import logger
 
-# Import monitoring components
 from .monitoring import error_monitor, health_checker, ErrorCategory, ErrorSeverity
 
-# Now AsyncWebSocketClient is our Socket.IO client wrapper
 from .websocket_client import AsyncWebSocketClient
 from .models import (
     Balance,
@@ -25,7 +23,7 @@ from .models import (
     OrderStatus,
     OrderDirection,
     ServerTime,
-    ConnectionInfo,  # Import ConnectionInfo
+    ConnectionInfo,
 )
 from .constants import ASSETS, REGIONS, TIMEFRAMES, API_LIMITS
 from .exceptions import (
@@ -34,7 +32,7 @@ from .exceptions import (
     AuthenticationError,
     InvalidParameterError,
     OrderError,
-    WebSocketError,  # Import WebSocketError
+    WebSocketError,
 )
 from .utils import format_session_id  # Keep for formatting auth data
 
@@ -52,10 +50,8 @@ class AsyncPocketOptionClient:
         uid: int = 0,
         platform: int = 1,
         is_fast_history: bool = True,
-        # persistent_connection and auto_reconnect are now handled by AsyncWebSocketClient internals
-        # but we keep them for interface consistency and to pass to it.
-        persistent_connection: bool = True,  # Default to True, as it's the robust way
-        auto_reconnect: bool = True,  # Default to True
+        persistent_connection: bool = True,
+        auto_reconnect: bool = True,
         enable_logging: bool = True,
     ):
         """
@@ -99,10 +95,8 @@ class AsyncPocketOptionClient:
         self._order_results: Dict[str, OrderResult] = {}
         self._candles_cache: Dict[str, List[Candle]] = {}
         self._server_time: Optional[ServerTime] = None
-        # Initialize _event_callbacks here to resolve Pylance attribute access
         self._event_callbacks: Dict[str, List[Callable]] = defaultdict(list)
         self._balance_updated_event = asyncio.Event()
-        # Initialize _candle_requests here to resolve Pylance attribute access
         self._candle_requests: Dict[str, asyncio.Future] = {}
 
         # Setup event handlers for websocket messages (from AsyncWebSocketClient)
@@ -121,7 +115,6 @@ class AsyncPocketOptionClient:
         self._is_persistent = (
             False  # Becomes True if connection is successfully established
         )
-        # by the new AsyncWebSocketClient using its internal persistence.
 
         # Connection statistics (now sourced directly from _websocket)
         self._connection_stats = {
@@ -134,9 +127,14 @@ class AsyncPocketOptionClient:
             "connection_start_time": None,
         }
 
+    async def close(self):
+        """Close the WebSocket connection and clean up resources."""
+        await self._websocket.close()
+        logger.info("AsyncPocketOptionClient closed.")
+
         logger.info(
-            f"Initialized PocketOption client (demo={is_demo}, uid={uid}, persistent={self.persistent_connection}) with enhanced monitoring"
-            if enable_logging
+            f"Initialized PocketOption client (demo={self.is_demo}, uid={self.uid}, persistent={self.persistent_connection}) with enhanced monitoring"
+            if self.enable_logging
             else ""
         )
 
@@ -192,12 +190,9 @@ class AsyncPocketOptionClient:
             )
 
     # --- Private Event Handlers for internal WebSocket client events ---
-    # Moved _on_websocket_... and _on_payout_update, _on_auth_error here to define them before usage
     async def _on_websocket_connected(self, data: Dict[str, Any]) -> None:
         """Handle 'connected' event from AsyncWebSocketClient (Socket.IO client)."""
         logger.info(f"Underlying Socket.IO client connected to {data.get('url')}")
-        # The main client still needs to await authentication before being truly "connected" for API use.
-        # This is just an internal notification from the lower layer.
         self._connection_stats["total_connections"] = (
             self._websocket.sio.eio.attempts + 1 if self._websocket.sio.eio else 1
         )
