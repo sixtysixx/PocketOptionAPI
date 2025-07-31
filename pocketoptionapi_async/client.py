@@ -706,13 +706,12 @@ class AsyncPocketOptionClient:
         """
         Get comprehensive connection statistics from the underlying WebSocket client.
         """
-        # This needs to adapt to what AsyncWebSocketClient provides
         stats = {}
-        if self._websocket.sio.eio:  # Check if eio client exists
-            stats["connected_status"] = self._websocket.sio.eio.state  # Engine.IO state
+        if self._websocket.sio.eio:
+            stats["connected_status"] = self._websocket.sio.eio.state
             stats["current_url"] = (
-                self._websocket.sio.eio.current_url
-                if self._websocket.sio.eio.current_url
+                self._websocket.sio.eio.url
+                if self._websocket.sio.eio.url
                 else None
             )
             stats["reconnect_attempts_sio"] = (
@@ -721,12 +720,9 @@ class AsyncPocketOptionClient:
 
         stats["is_connected"] = self._websocket.is_connected
 
-        # Add basic stats tracked by this client
         stats.update(self._connection_stats)
 
         return stats
-
-    # Private methods (adapted for Socket.IO)
 
     def _parse_complete_ssid(self, ssid: str) -> None:
         """
@@ -734,16 +730,14 @@ class AsyncPocketOptionClient:
         This method will no longer be used directly for parsing as `_auth_data`
         is prepared earlier.
         """
-        pass  # No longer needed here
+        pass
 
     async def _wait_for_authentication(self, timeout: float = 10.0) -> None:
         """Wait for authentication to complete, using an internal event."""
         auth_received_event = asyncio.Event()
         
-        # Diagnostic logging for authentication flow
         logger.info(f"Starting authentication wait (timeout={timeout}s)")
-        
-        # Check if we're using a test SSID
+
         ssid_info = getattr(self, '_ssid', 'Unknown')
         if str(ssid_info).startswith('fake-'):
             logger.warning(
@@ -751,7 +745,7 @@ class AsyncPocketOptionClient:
                 f"Use real SSID from browser developer tools for successful authentication."
             )
         else:
-            logger.debug(f"Using SSID: {ssid_info[:8]}...")  # Log first 8 chars only for security
+            logger.debug(f"Using SSID: {ssid_info[:8]}...")
 
         def on_auth_success(data):
             logger.success("Received 'authenticated' event - authentication successful!")
@@ -760,9 +754,8 @@ class AsyncPocketOptionClient:
 
         def on_auth_error(data):
             logger.error(f"Received 'autherror' event - authentication failed: {data}")
-            auth_received_event.set()  # Set to prevent hanging
+            auth_received_event.set()
 
-        # Temporarily add handlers to the client's internal event system
         self.add_event_callback("authenticated", on_auth_success)
         self.add_event_callback("autherror", on_auth_error)
 
@@ -780,15 +773,12 @@ class AsyncPocketOptionClient:
             )
             raise AuthenticationError("Authentication timeout")
         finally:
-            # Remove temporary handlers
             self.remove_event_callback("authenticated", on_auth_success)
             self.remove_event_callback("autherror", on_auth_error)
 
     async def _initialize_data(self) -> None:
         """Initialize client data after connection and authentication."""
-        # Request initial balance and wait for it
         self._balance_updated_event.clear()
-        # Request balance directly via Socket.IO event
         await self._websocket.send_message("getBalance")
         try:
             await asyncio.wait_for(
@@ -801,19 +791,14 @@ class AsyncPocketOptionClient:
         except Exception as e:
             logger.error(f"Error during initial balance fetch: {e}")
 
-        # Setup time synchronization
         await self._setup_time_sync()
 
     async def _request_balance_update(self) -> None:
         """Request balance update from server by emitting Socket.IO event."""
-        # This method is now implicitly called by get_balance()
         await self._websocket.send_message("getBalance")
 
     async def _setup_time_sync(self) -> None:
         """Setup server time synchronization. This might be a direct API call or just local time tracking."""
-        # For PocketOption, getting server time is often implicitly done via a message,
-        # or it's not a direct 'request' but rather derived from message timestamps.
-        # For now, we'll keep the simple local time assignment.
         local_time = datetime.now().timestamp()
         self._server_time = ServerTime(
             server_timestamp=local_time, local_timestamp=local_time, offset=0.0
@@ -848,10 +833,8 @@ class AsyncPocketOptionClient:
         Send order to server by emitting a Socket.IO event.
         This function is now called internally by `place_order`.
         """
-        # Format asset name with # prefix if not already present
         asset_name = order.asset
 
-        # Create the message payload for 'openOrder' event
         order_payload = {
             "asset": asset_name,
             "amount": order.amount,
@@ -923,7 +906,7 @@ class AsyncPocketOptionClient:
         )  # Store it in active orders in case server responds later
         self._active_orders[order_id] = fallback_result
         if self.enable_logging:
-            logger.info(f"📝 Created fallback order result for {order_id}")
+            logger.info(f"Created fallback order result for {order_id}")
         return fallback_result
 
     async def check_win(
@@ -943,7 +926,7 @@ class AsyncPocketOptionClient:
 
         if self.enable_logging:
             logger.info(
-                f"🔍 Starting check_win for order {order_id}, max wait: {max_wait_time}s"
+                f"Starting check_win for order {order_id}, max wait: {max_wait_time}s"
             )
 
         while time.time() - start_time < max_wait_time:
@@ -977,14 +960,14 @@ class AsyncPocketOptionClient:
                 if time_remaining <= 0:
                     if self.enable_logging:
                         logger.info(
-                            f"⏰ Order {order_id} expired but no result yet, continuing to wait..."
+                            f"Order {order_id} expired but no result yet, continuing to wait..."
                         )
                 else:
                     if (
                         self.enable_logging and int(time.time() - start_time) % 10 == 0
                     ):  # Log every 10 seconds
                         logger.debug(
-                            f"⌛ Order {order_id} still active, expires in {time_remaining:.0f}s"
+                            f"Order {order_id} still active, expires in {time_remaining:.0f}s"
                         )
 
             await asyncio.sleep(1.0)  # Check every second
@@ -992,7 +975,7 @@ class AsyncPocketOptionClient:
         # Timeout reached
         if self.enable_logging:
             logger.warning(
-                f"⏰ check_win timeout for order {order_id} after {max_wait_time}s"
+                f"check_win timeout for order {order_id} after {max_wait_time}s"
             )
 
         return {
@@ -1012,10 +995,6 @@ class AsyncPocketOptionClient:
             "asset": str(asset),
             "period": timeframe,  # timeframe in seconds
         }
-
-        # Create the full message using changeSymbol
-        # message_data = ["changeSymbol", data] # This was for raw message sending
-        # message = f"42{json.dumps(message_data)}" # This was for raw message sending
 
         if self.enable_logging:
             logger.debug(f"Requesting candles with changeSymbol: {data}")
@@ -1130,9 +1109,6 @@ class AsyncPocketOptionClient:
             logger.warning(f"Received non-dict JSON data: {data}")
             return
 
-        # Check if this is candles data response from 'changeSymbol' or 'loadHistoryPeriod' that comes as general JSON
-        # This part handles when the full candle history (not just stream updates) comes via a 'json_data' event,
-        # likely due to the initial `changeSymbol` request or `loadHistoryPeriod`.
         if "candles" in data and isinstance(data["candles"], list):
             asset_from_data = data.get("asset")
             period_from_data = data.get("period")
