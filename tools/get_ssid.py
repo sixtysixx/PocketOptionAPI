@@ -1,5 +1,4 @@
 import os  # For interacting with the file system (e.g., .env file).
-import json  # For parsing JSON data (though not directly used for capture now).
 import time  # For introducing a necessary delay for WebSocket communication.
 import re  # For using regular expressions to find the target auth message.
 import logging  # For providing structured, informative output.

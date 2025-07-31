@@ -16,7 +16,6 @@ import socketio
 from .models import ConnectionInfo, ConnectionStatus
 from .constants import (
     REGIONS,
-    DEFAULT_HEADERS,
 )  # Import DEFAULT_HEADERS for random User-Agent
 
 
@@ -506,8 +505,10 @@ async def demo_keep_alive():
                     )
 
                 # Send a test message every 30 seconds to demonstrate sending capabilities.
-                if i % 30 == 0 and i > 0:
-                    await keep_alive.send_message('42["test_message",{"data":"hello"}]')
+                # if i % 30 == 0 and i > 0:
+                #    await keep_alive.send_message('42["test_message",{"data":"hello"}]')
+
+                # does this script even need to be here because i think socketio library has an automatic keep-alive
 
         else:
             logger.error("Error: Failed to start keep-alive connection.")

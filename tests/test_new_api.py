@@ -110,12 +110,8 @@ def test_api_structure():
     # Test imports
     try:
         from pocketoptionapi_async import (
-            AsyncPocketOptionClient,
             OrderDirection,
-            OrderStatus,
-            Balance,
             Order,
-            OrderResult,
             ASSETS,
             REGIONS,
         )

@@ -34,7 +34,6 @@ from .exceptions import (
     OrderError,
     WebSocketError,
 )
-from .utils import format_session_id  # Keep for formatting auth data
 
 
 class AsyncPocketOptionClient:
@@ -126,6 +125,12 @@ class AsyncPocketOptionClient:
             "messages_received": 0,
             "connection_start_time": None,
         }
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()
 
     async def close(self):
         """Close the WebSocket connection and clean up resources."""
@@ -271,7 +276,9 @@ class AsyncPocketOptionClient:
             "authenticated", self._on_authenticated
         )  # Direct from websocket
         self._websocket.add_event_handler("balance_data", self._on_balance_data)
-        self._websocket.add_event_handler("successupdateBalance", self._on_balance_updated)
+        self._websocket.add_event_handler(
+            "successupdateBalance", self._on_balance_updated
+        )
         self._websocket.add_event_handler("successopenOrder", self._on_order_opened)
         self._websocket.add_event_handler("successcloseOrder", self._on_order_closed)
         self._websocket.add_event_handler("updateStream", self._on_stream_update)
@@ -710,12 +717,12 @@ class AsyncPocketOptionClient:
         if self._websocket.sio.eio:
             stats["connected_status"] = self._websocket.sio.eio.state
             stats["current_url"] = (
-                self._websocket.sio.eio.url
-                if self._websocket.sio.eio.url
-                else None
+                self._websocket.sio.eio.url if self._websocket.sio.eio.url else None
             )
             stats["reconnect_attempts_sio"] = (
-                self._websocket.sio.eio.reconnection_attempts if self._websocket.sio.eio else 0
+                self._websocket.sio.eio.reconnection_attempts
+                if self._websocket.sio.eio
+                else 0
             )
 
         stats["is_connected"] = self._websocket.is_connected
@@ -735,11 +742,11 @@ class AsyncPocketOptionClient:
     async def _wait_for_authentication(self, timeout: float = 10.0) -> None:
         """Wait for authentication to complete, using an internal event."""
         auth_received_event = asyncio.Event()
-        
+
         logger.info(f"Starting authentication wait (timeout={timeout}s)")
 
-        ssid_info = getattr(self, '_ssid', 'Unknown')
-        if str(ssid_info).startswith('fake-'):
+        ssid_info = getattr(self, "_ssid", "Unknown")
+        if str(ssid_info).startswith("fake-"):
             logger.warning(
                 f"Using test SSID '{ssid_info}': Authentication will timeout. "
                 f"Use real SSID from browser developer tools for successful authentication."
@@ -748,7 +755,9 @@ class AsyncPocketOptionClient:
             logger.debug(f"Using SSID: {ssid_info[:8]}...")
 
         def on_auth_success(data):
-            logger.success("Received 'authenticated' event - authentication successful!")
+            logger.success(
+                "Received 'authenticated' event - authentication successful!"
+            )
             logger.debug(f"Authentication data: {data}")
             auth_received_event.set()
 
@@ -1313,14 +1322,14 @@ class AsyncPocketOptionClient:
     async def _on_order_closed(self, data: Dict[str, Any]) -> None:
         """Handle order closed event"""
         if self.enable_logging:
-            logger.info(f"📊 Order closed: {data}")
+            logger.info(f"Order closed: {data}")
         # Use self._emit_event
         await self._emit_event("order_closed", data)  #
 
     async def _on_stream_update(self, data: Dict[str, Any]) -> None:
         """Handle stream update event - includes real-time candle data"""
         if self.enable_logging:
-            logger.debug(f"📡 Stream update: {data}")
+            logger.debug(f"Stream update: {data}")
 
         # Check if this is candle data from changeSymbol subscription
         if (
@@ -1336,7 +1345,7 @@ class AsyncPocketOptionClient:
     async def _on_candles_received(self, data: Dict[str, Any]) -> None:
         """Handle candles data received"""
         if self.enable_logging:
-            logger.info(f"🕯️ Candles received with data: {type(data)}")
+            logger.info(f"Candles received with data: {type(data)}")
         # Check if we have pending candle requests
         # _candle_requests is initialized in __init__
         if self._candle_requests:  # Use `self._candle_requests` directly
@@ -1360,7 +1369,7 @@ class AsyncPocketOptionClient:
                                 )
                                 if self.enable_logging:
                                     logger.info(
-                                        f"🕯️ Parsed {len(candles)} candles from response for {request_id}"
+                                        f"Parsed {len(candles)} candles from response for {request_id}"
                                     )
                                 future.set_result(candles)
                                 if self.enable_logging:
@@ -1421,9 +1430,8 @@ class AsyncPocketOptionClient:
                             future.set_result(candles)
                             if self.enable_logging:
                                 logger.info(
-                                    f"🕯️ Resolved candle request for {asset} with {len(candles)} candles from stream"
+                                    f"Resolved candle request for {asset} with {len(candles)} candles from stream"
                                 )
-                # No need to delete future here, as `_request_candles` finally block will handle it after resolution.
         except Exception as e:
             if self.enable_logging:
                 logger.error(f"Error handling candles stream: {e}")
@@ -1525,12 +1533,6 @@ class AsyncPocketOptionClient:
         This method might still be called for raw messages if the underlying
         Socket.IO client forwards them as 'message' events.
         """
-        # This logic is mostly moved into AsyncWebSocketClient's _on_sio_json etc.
-        # This method in AsyncPocketOptionClient should only handle events
-        # explicitly routed from AsyncWebSocketClient's generic `message_received` handler
-        # if any. The original implementation parsed raw '42' messages here which is
-        # now handled by `python-socketio` and then passed via `_on_json_data`.
-
         # Emit raw message event (if this client needs to see it)
         await self._emit_event(
             "message", {"message": message}

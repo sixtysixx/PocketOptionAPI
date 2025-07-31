@@ -255,7 +255,7 @@ class LoadTester:
             if client:
                 try:
                     await client.disconnect()
-                except:
+                except Exception:
                     pass
 
     async def _run_stress_client(

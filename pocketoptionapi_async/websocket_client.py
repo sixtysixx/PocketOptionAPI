@@ -32,24 +32,48 @@ class AsyncWebSocketClient:
             request_timeout=10,  # Set timeout (in seconds) for initial connection handshake
             # Removed 'attempts=0' as it is not a valid keyword argument for socketio.AsyncClient.__init__
         )
-        self.connection_info: Optional[ConnectionInfo] = None # Stores detailed connection status and info
-        self.server_time: Optional[ServerTime] = None # Stores server time for synchronization
-        self._running = False # Flag to indicate if the client is intended to be running
-        self._event_handlers: Dict[str, List[Callable]] = {} # Dictionary to store custom event handlers
-        self._reconnect_attempts_counter = 0  # Counter for custom reconnection logic (if needed externally)
-        self._current_url: Optional[str] = None  # Stores the URL of the current successful connection
+        self.connection_info: Optional[ConnectionInfo] = (
+            None  # Stores detailed connection status and info
+        )
+        self.server_time: Optional[ServerTime] = (
+            None  # Stores server time for synchronization
+        )
+        self._running = (
+            False  # Flag to indicate if the client is intended to be running
+        )
+        self._event_handlers: Dict[
+            str, List[Callable]
+        ] = {}  # Dictionary to store custom event handlers
+        self._reconnect_attempts_counter = (
+            0  # Counter for custom reconnection logic (if needed externally)
+        )
+        self._current_url: Optional[str] = (
+            None  # Stores the URL of the current successful connection
+        )
 
         # Internal event handlers for standard Socket.IO events
-        self.sio.on("connect", self._on_sio_connect) # Handler for successful connection
-        self.sio.on("disconnect", self._on_sio_disconnect) # Handler for disconnection
-        self.sio.on("reconnect", self._on_sio_reconnect) # Handler for successful reconnection
-        self.sio.on("connect_error", self._on_sio_connect_error) # Handler for connection errors
+        self.sio.on(
+            "connect", self._on_sio_connect
+        )  # Handler for successful connection
+        self.sio.on("disconnect", self._on_sio_disconnect)  # Handler for disconnection
+        self.sio.on(
+            "reconnect", self._on_sio_reconnect
+        )  # Handler for successful reconnection
+        self.sio.on(
+            "connect_error", self._on_sio_connect_error
+        )  # Handler for connection errors
 
         # Catch-all handlers for other Socket.IO messages that don't have explicit handlers
-        self.sio.on("message", self._on_sio_message) # Handler for generic 'message' events (raw data)
-        self.sio.on("json", self._on_sio_json)  # Handler for 'json' events (parsed '42' messages)
+        self.sio.on(
+            "message", self._on_sio_message
+        )  # Handler for generic 'message' events (raw data)
+        self.sio.on(
+            "json", self._on_sio_json
+        )  # Handler for 'json' events (parsed '42' messages)
 
-        logger.info("AsyncWebSocketClient initialized using python-socketio.") # Log initialization
+        logger.info(
+            "AsyncWebSocketClient initialized using python-socketio."
+        )  # Log initialization
 
     async def close(self):
         """Disconnect from the server and clean up resources."""
@@ -67,73 +91,100 @@ class AsyncWebSocketClient:
         Returns:
             bool: True if connected successfully to any URL, False otherwise.
         """
-        self._running = True # Set running flag to True
-        self._reconnect_attempts_counter = 0  # Reset reconnection attempt counter for a new connection process
+        self._running = True  # Set running flag to True
+        self._reconnect_attempts_counter = (
+            0  # Reset reconnection attempt counter for a new connection process
+        )
 
         # Create a mutable copy and shuffle URLs to distribute connections/retries
         import random
-        current_urls = list(urls) # Create a copy of the URLs list
-        random.shuffle(current_urls) # Randomize the order of URLs
 
-        for url in current_urls: # Iterate through each URL in the shuffled list
+        current_urls = list(urls)  # Create a copy of the URLs list
+        random.shuffle(current_urls)  # Randomize the order of URLs
+
+        for url in current_urls:  # Iterate through each URL in the shuffled list
             try:
                 # python-socketio handles the '/socket.io/?EIO=4&transport=websocket' part,
                 # so we connect to the base URL.
-                base_url = url.split("/socket.io")[0] # Extract the base URL
+                base_url = url.split("/socket.io")[0]  # Extract the base URL
 
-                logger.info(f"Attempting to connect to Socket.IO at {base_url}") # Log the current connection attempt
+                logger.info(
+                    f"Attempting to connect to Socket.IO at {base_url}"
+                )  # Log the current connection attempt
 
                 # Connect to the Socket.IO server.
                 # The 'auth' parameter sends authentication data during the handshake.
                 await self.sio.connect(
                     base_url,
-                    transports=["websocket"], # Explicitly specify WebSocket transport
-                    headers=DEFAULT_HEADERS, # Use predefined default headers (e.g., User-Agent)
+                    transports=["websocket"],  # Explicitly specify WebSocket transport
+                    headers=DEFAULT_HEADERS,  # Use predefined default headers (e.g., User-Agent)
                     auth=auth_data,  # Pass authentication data for handshake
                 )
 
-                if self.sio.connected: # Check if the Socket.IO client is successfully connected
-                    self._current_url = url  # Store the full URL of the successful connection
+                if (
+                    self.sio.connected
+                ):  # Check if the Socket.IO client is successfully connected
+                    self._current_url = (
+                        url  # Store the full URL of the successful connection
+                    )
                     region = self._extract_region_from_url(
                         url
                     )  # Extract region from the original URL
-                    self.connection_info = ConnectionInfo( # Update detailed connection information
+                    self.connection_info = ConnectionInfo(  # Update detailed connection information
                         url=url,
                         region=region,
                         status=ConnectionStatus.CONNECTED,
-                        connected_at=datetime.now(), # Record connection timestamp
-                        reconnect_attempts=self._reconnect_attempts_counter, # Store attempts
+                        connected_at=datetime.now(),  # Record connection timestamp
+                        reconnect_attempts=self._reconnect_attempts_counter,  # Store attempts
                     )
-                    logger.success(f"Successfully connected to {region} via Socket.IO") # Log success
-                    await self._emit_event("connected", {"url": url, "region": region}) # Emit custom 'connected' event
-                    return True # Return True as connection is established
-            except ConnectionError as e: # Catch Socket.IO specific connection errors
-                logger.warning(f"Socket.IO connection failed to {url}: {e}") # Log the specific failure reason
-                if self.sio.connected: # Ensure disconnection if a partial connection occurred
+                    logger.success(
+                        f"Successfully connected to {region} via Socket.IO"
+                    )  # Log success
+                    await self._emit_event(
+                        "connected", {"url": url, "region": region}
+                    )  # Emit custom 'connected' event
+                    return True  # Return True as connection is established
+            except ConnectionError as e:  # Catch Socket.IO specific connection errors
+                logger.warning(
+                    f"Socket.IO connection failed to {url}: {e}"
+                )  # Log the specific failure reason
+                if (
+                    self.sio.connected
+                ):  # Ensure disconnection if a partial connection occurred
                     await self.sio.disconnect()
-            except asyncio.TimeoutError: # Catch asyncio timeouts during connection
-                logger.warning(f"Connection attempt to {url} timed out.") # Log timeout
-                if self.sio.connected: # Ensure disconnection if a partial connection occurred
+            except asyncio.TimeoutError:  # Catch asyncio timeouts during connection
+                logger.warning(f"Connection attempt to {url} timed out.")  # Log timeout
+                if (
+                    self.sio.connected
+                ):  # Ensure disconnection if a partial connection occurred
                     await self.sio.disconnect()
-            except Exception as e: # Catch any other unexpected errors
-                logger.error(f"Unexpected error during connection to {url}: {e}") # Log the unexpected error
-                if self.sio.connected: # Ensure disconnection if a partial connection occurred
+            except Exception as e:  # Catch any other unexpected errors
+                logger.error(
+                    f"Unexpected error during connection to {url}: {e}"
+                )  # Log the unexpected error
+                if (
+                    self.sio.connected
+                ):  # Ensure disconnection if a partial connection occurred
                     await self.sio.disconnect()
 
-            self._reconnect_attempts_counter += 1  # Increment counter for each URL attempt
+            self._reconnect_attempts_counter += (
+                1  # Increment counter for each URL attempt
+            )
 
-        logger.error("Failed to connect to any Socket.IO endpoint after all attempts.") # Log overall failure
-        return False # Return False if no connection could be established after all attempts
+        logger.error(
+            "Failed to connect to any Socket.IO endpoint after all attempts."
+        )  # Log overall failure
+        return False  # Return False if no connection could be established after all attempts
 
     async def disconnect(self):
         """
         Gracefully disconnects from the Socket.IO server.
         Resets internal running flag and connection information.
         """
-        logger.info("Disconnecting from Socket.IO client.") # Log disconnection attempt
-        self._running = False # Set running flag to False
-        if self.sio.connected: # Check if the client is currently connected
-            await self.sio.disconnect() # Initiate Socket.IO disconnection
+        logger.info("Disconnecting from Socket.IO client.")  # Log disconnection attempt
+        self._running = False  # Set running flag to False
+        if self.sio.connected:  # Check if the client is currently connected
+            await self.sio.disconnect()  # Initiate Socket.IO disconnection
         self.connection_info = None  # Clear connection information upon disconnection
 
     async def send_message(self, event_name: str, data: Any = None) -> bool:
@@ -147,22 +198,32 @@ class AsyncWebSocketClient:
         Raises:
             WebSocketError: If the client is not connected or an error occurs during emission.
         """
-        if not self.sio.connected: # Check if the Socket.IO client is connected
-            logger.warning("Cannot send message: Socket.IO client is not connected.") # Log warning
-            raise WebSocketError("Socket.IO client is not connected") # Raise an error if not connected
+        if not self.sio.connected:  # Check if the Socket.IO client is connected
+            logger.warning(
+                "Cannot send message: Socket.IO client is not connected."
+            )  # Log warning
+            raise WebSocketError(
+                "Socket.IO client is not connected"
+            )  # Raise an error if not connected
 
         try:
             # Emit event. python-socketio handles the framing (e.g., '42["event_name", data]')
-            if data is not None: # If data payload is provided
-                await self.sio.emit(event_name, data) # Emit the event with data
-            else: # If no data payload
+            if data is not None:  # If data payload is provided
+                await self.sio.emit(event_name, data)  # Emit the event with data
+            else:  # If no data payload
                 await self.sio.emit(event_name)  # Emit the event without data
 
-            logger.debug(f"Emitted Socket.IO event: '{event_name}' with data: {data}") # Log the emitted event
-            return True # Return True on successful emission
-        except Exception as e: # Catch any exceptions during emission
-            logger.error(f"Failed to emit Socket.IO event '{event_name}': {e}") # Log the error
-            raise WebSocketError(f"Failed to send Socket.IO event: {e}") # Re-raise as WebSocketError
+            logger.debug(
+                f"Emitted Socket.IO event: '{event_name}' with data: {data}"
+            )  # Log the emitted event
+            return True  # Return True on successful emission
+        except Exception as e:  # Catch any exceptions during emission
+            logger.error(
+                f"Failed to emit Socket.IO event '{event_name}': {e}"
+            )  # Log the error
+            raise WebSocketError(
+                f"Failed to send Socket.IO event: {e}"
+            )  # Re-raise as WebSocketError
 
     # --- Internal Socket.IO Event Handlers ---
     async def _on_sio_connect(self):
@@ -171,38 +232,44 @@ class AsyncWebSocketClient:
         This event signifies that the underlying Engine.IO handshake is complete.
         Updates internal connection information.
         """
-        logger.success("Socket.IO client connected!") # Log successful connection
+        logger.success("Socket.IO client connected!")  # Log successful connection
         if (
             not self.connection_info
         ):  # If connection_info hasn't been set yet (first connection)
-            if self._current_url: # If a current URL is available
-                region = self._extract_region_from_url(self._current_url) # Extract region from URL
-                self.connection_info = ConnectionInfo( # Create new ConnectionInfo
+            if self._current_url:  # If a current URL is available
+                region = self._extract_region_from_url(
+                    self._current_url
+                )  # Extract region from URL
+                self.connection_info = ConnectionInfo(  # Create new ConnectionInfo
                     url=self._current_url,
                     region=region,
                     status=ConnectionStatus.CONNECTED,
-                    connected_at=datetime.now(), # Record current time as connected_at
-                    reconnect_attempts=self._reconnect_attempts_counter, # Store reconnection attempts
+                    connected_at=datetime.now(),  # Record current time as connected_at
+                    reconnect_attempts=self._reconnect_attempts_counter,  # Store reconnection attempts
                 )
-            else: # Fallback if URL is not available
-                logger.warning("Unable to determine connection URL") # Warn if URL is unknown
-                self.connection_info = ConnectionInfo( # Create ConnectionInfo with unknown details
-                    url="unknown",
-                    region="UNKNOWN",
-                    status=ConnectionStatus.CONNECTED,
-                    connected_at=datetime.now(),
-                    reconnect_attempts=self._reconnect_attempts_counter,
+            else:  # Fallback if URL is not available
+                logger.warning(
+                    "Unable to determine connection URL"
+                )  # Warn if URL is unknown
+                self.connection_info = (
+                    ConnectionInfo(  # Create ConnectionInfo with unknown details
+                        url="unknown",
+                        region="UNKNOWN",
+                        status=ConnectionStatus.CONNECTED,
+                        connected_at=datetime.now(),
+                        reconnect_attempts=self._reconnect_attempts_counter,
+                    )
                 )
         else:  # On re-connection, update status
-            self.connection_info = ConnectionInfo( # Update existing ConnectionInfo
+            self.connection_info = ConnectionInfo(  # Update existing ConnectionInfo
                 url=self.connection_info.url,  # Keep original URL
                 region=self.connection_info.region,
                 status=ConnectionStatus.CONNECTED,
                 connected_at=datetime.now(),  # Update connected_at on successful reconnect
-                last_ping=self.connection_info.last_ping, # Preserve last ping time
+                last_ping=self.connection_info.last_ping,  # Preserve last ping time
                 reconnect_attempts=self.connection_info.reconnect_attempts + 1
                 if self._running
-                else 0, # Increment attempts if running, else reset
+                else 0,  # Increment attempts if running, else reset
             )
 
     async def _on_sio_disconnect(self):
@@ -210,17 +277,17 @@ class AsyncWebSocketClient:
         Handler for Socket.IO 'disconnect' event.
         Updates connection status to DISCONNECTED.
         """
-        logger.warning("Socket.IO client disconnected!") # Log disconnection warning
-        if self.connection_info: # If connection info exists
-            self.connection_info = ConnectionInfo( # Update connection info status
+        logger.warning("Socket.IO client disconnected!")  # Log disconnection warning
+        if self.connection_info:  # If connection info exists
+            self.connection_info = ConnectionInfo(  # Update connection info status
                 url=self.connection_info.url,
                 region=self.connection_info.region,
-                status=ConnectionStatus.DISCONNECTED, # Set status to DISCONNECTED
+                status=ConnectionStatus.DISCONNECTED,  # Set status to DISCONNECTED
                 connected_at=self.connection_info.connected_at,
                 last_ping=self.connection_info.last_ping,
                 reconnect_attempts=self.connection_info.reconnect_attempts,
             )
-        await self._emit_event("disconnected", {}) # Emit custom 'disconnected' event
+        await self._emit_event("disconnected", {})  # Emit custom 'disconnected' event
 
     async def _on_sio_reconnect(self, attempt_count: int):
         """
@@ -229,17 +296,19 @@ class AsyncWebSocketClient:
         Args:
             attempt_count: The number of attempts taken by socketio to reconnect.
         """
-        logger.info(f"Socket.IO client reconnected after {attempt_count} attempts!") # Log reconnection
-        if self.connection_info: # If connection info exists
-            self.connection_info = ConnectionInfo( # Update connection info
+        logger.info(
+            f"Socket.IO client reconnected after {attempt_count} attempts!"
+        )  # Log reconnection
+        if self.connection_info:  # If connection info exists
+            self.connection_info = ConnectionInfo(  # Update connection info
                 url=self.connection_info.url,
                 region=self.connection_info.region,
-                status=ConnectionStatus.CONNECTED, # Set status to CONNECTED
+                status=ConnectionStatus.CONNECTED,  # Set status to CONNECTED
                 connected_at=datetime.now(),  # Update connected_at on successful reconnect
-                last_ping=self.connection_info.last_ping, # Preserve last ping
-                reconnect_attempts=attempt_count, # Store actual attempts
+                last_ping=self.connection_info.last_ping,  # Preserve last ping
+                reconnect_attempts=attempt_count,  # Store actual attempts
             )
-        await self._emit_event( # Emit custom 'reconnected' event
+        await self._emit_event(  # Emit custom 'reconnected' event
             "reconnected",
             {
                 "attempt": attempt_count,
@@ -254,8 +323,10 @@ class AsyncWebSocketClient:
         Args:
             data: The error data from Socket.IO.
         """
-        logger.error(f"Socket.IO connection error: {data}") # Log the connection error
-        await self._emit_event("connect_error", {"message": str(data)}) # Emit custom 'connect_error' event
+        logger.error(f"Socket.IO connection error: {data}")  # Log the connection error
+        await self._emit_event(
+            "connect_error", {"message": str(data)}
+        )  # Emit custom 'connect_error' event
 
     async def _on_sio_message(self, data: Any):
         """
@@ -263,8 +334,10 @@ class AsyncWebSocketClient:
         Args:
             data: The raw message data received.
         """
-        logger.debug(f"Socket.IO 'message' event received: {data}") # Log raw message
-        await self._emit_event("message_received", {"message": data}) # Emit custom 'message_received' event
+        logger.debug(f"Socket.IO 'message' event received: {data}")  # Log raw message
+        await self._emit_event(
+            "message_received", {"message": data}
+        )  # Emit custom 'message_received' event
 
     async def _on_sio_json(self, data: Any):
         """
@@ -273,45 +346,81 @@ class AsyncWebSocketClient:
         Args:
             data: The parsed JSON data received from Socket.IO.
         """
-        logger.debug(f"Socket.IO 'json' event received: {data}") # Log the raw JSON data
+        logger.debug(
+            f"Socket.IO 'json' event received: {data}"
+        )  # Log the raw JSON data
 
-        if isinstance(data, list) and len(data) > 0: # Check if data is a list (common for S.IO events)
-            event_type = data[0] # First element is the event type
-            event_data = data[1] if len(data) > 1 else {} # Second element is the data payload, if present
+        if (
+            isinstance(data, list) and len(data) > 0
+        ):  # Check if data is a list (common for S.IO events)
+            event_type = data[0]  # First element is the event type
+            event_data = (
+                data[1] if len(data) > 1 else {}
+            )  # Second element is the data payload, if present
 
-            logger.info(f"Received Socket.IO event: {event_type} with data: {event_data}") # Log parsed event
+            logger.info(
+                f"Received Socket.IO event: {event_type} with data: {event_data}"
+            )  # Log parsed event
 
             # Explicitly map common PocketOption events to custom events
             if event_type == "successauth":
-                logger.success("Authentication successful - received 'successauth' event") # Log auth success
-                await self._emit_event("authenticated", event_data) # Emit custom 'authenticated' event
+                logger.success(
+                    "Authentication successful - received 'successauth' event"
+                )  # Log auth success
+                await self._emit_event(
+                    "authenticated", event_data
+                )  # Emit custom 'authenticated' event
             elif event_type == "successupdateBalance":
-                await self._emit_event("successupdateBalance", event_data) # Emit custom 'successupdateBalance' event
+                await self._emit_event(
+                    "successupdateBalance", event_data
+                )  # Emit custom 'successupdateBalance' event
             elif event_type == "successopenOrder":
-                await self._emit_event("successopenOrder", event_data) # Emit custom 'successopenOrder' event
+                await self._emit_event(
+                    "successopenOrder", event_data
+                )  # Emit custom 'successopenOrder' event
             elif event_type == "successcloseOrder":
-                await self._emit_event("successcloseOrder", event_data) # Emit custom 'successcloseOrder' event
+                await self._emit_event(
+                    "successcloseOrder", event_data
+                )  # Emit custom 'successcloseOrder' event
             elif event_type == "updateStream":
-                await self._emit_event("updateStream", event_data) # Emit custom 'updateStream' event
+                await self._emit_event(
+                    "updateStream", event_data
+                )  # Emit custom 'updateStream' event
             elif event_type == "loadHistoryPeriod":
-                await self._emit_event("candles_received", event_data) # Emit custom 'candles_received' event
+                await self._emit_event(
+                    "candles_received", event_data
+                )  # Emit custom 'candles_received' event
             elif event_type == "payout_update":
-                await self._emit_event("payout_update", event_data) # Emit custom 'payout_update' event
+                await self._emit_event(
+                    "payout_update", event_data
+                )  # Emit custom 'payout_update' event
             elif event_type == "updateHistoryNew":
-                await self._emit_event("history_update", event_data) # Emit custom 'history_update' event
+                await self._emit_event(
+                    "history_update", event_data
+                )  # Emit custom 'history_update' event
             elif event_type == "autherror":
-                logger.error(f"Authentication error received: {event_data}") # Log auth error
-                await self._emit_event("auth_error", event_data) # Emit custom 'auth_error' event
+                logger.error(
+                    f"Authentication error received: {event_data}"
+                )  # Log auth error
+                await self._emit_event(
+                    "auth_error", event_data
+                )  # Emit custom 'auth_error' event
             else:
                 # Fallback for unrecognized Socket.IO events
-                logger.debug(f"Unrecognized event type: {event_type}") # Log unrecognized event
-                await self._emit_event( # Emit generic 'unknown_event'
+                logger.debug(
+                    f"Unrecognized event type: {event_type}"
+                )  # Log unrecognized event
+                await self._emit_event(  # Emit generic 'unknown_event'
                     "unknown_event", {"type": event_type, "data": event_data}
                 )
-        elif isinstance(data, dict): # Sometimes a raw JSON object might be sent without an event_type array
-            await self._emit_event("json_data", data) # Emit as general 'json_data'
+        elif isinstance(
+            data, dict
+        ):  # Sometimes a raw JSON object might be sent without an event_type array
+            await self._emit_event("json_data", data)  # Emit as general 'json_data'
         else:
-            logger.warning(f"Unexpected data format in Socket.IO 'json' event: {data}") # Warn for unexpected formats
+            logger.warning(
+                f"Unexpected data format in Socket.IO 'json' event: {data}"
+            )  # Warn for unexpected formats
 
     # --- Public Event Handler Management ---
     def add_event_handler(self, event: str, handler: Callable) -> None:
@@ -321,9 +430,9 @@ class AsyncWebSocketClient:
             event: The name of the custom event (e.g., 'connected', 'json_data').
             handler: The callable function to be invoked when the event occurs.
         """
-        if event not in self._event_handlers: # If no handlers for this event yet
-            self._event_handlers[event] = [] # Create an empty list
-        self._event_handlers[event].append(handler) # Add the handler to the list
+        if event not in self._event_handlers:  # If no handlers for this event yet
+            self._event_handlers[event] = []  # Create an empty list
+        self._event_handlers[event].append(handler)  # Add the handler to the list
 
     def remove_event_handler(self, event: str, handler: Callable) -> None:
         """
@@ -332,11 +441,13 @@ class AsyncWebSocketClient:
             event: The name of the event from which to remove the handler.
             handler: The callable function to remove.
         """
-        if event in self._event_handlers: # If handlers exist for this event
+        if event in self._event_handlers:  # If handlers exist for this event
             try:
-                self._event_handlers[event].remove(handler) # Attempt to remove the handler
+                self._event_handlers[event].remove(
+                    handler
+                )  # Attempt to remove the handler
             except ValueError:
-                pass # Handler not found in list, so do nothing
+                pass  # Handler not found in list, so do nothing
 
     async def _emit_event(self, event: str, data: Dict[str, Any]) -> None:
         """
@@ -346,15 +457,21 @@ class AsyncWebSocketClient:
             event: The name of the event to emit.
             data: The data payload to pass to the event handlers.
         """
-        if event in self._event_handlers: # Check if there are handlers for this event
-            for handler in self._event_handlers[event]: # Iterate through each registered handler
+        if event in self._event_handlers:  # Check if there are handlers for this event
+            for handler in self._event_handlers[
+                event
+            ]:  # Iterate through each registered handler
                 try:
-                    if asyncio.iscoroutinefunction(handler): # Check if the handler is an asynchronous function
-                        await handler(data) # Await the asynchronous handler
+                    if asyncio.iscoroutinefunction(
+                        handler
+                    ):  # Check if the handler is an asynchronous function
+                        await handler(data)  # Await the asynchronous handler
                     else:
-                        handler(data) # Call the synchronous handler directly
+                        handler(data)  # Call the synchronous handler directly
                 except Exception as e:
-                    logger.error(f"Error in event handler for {event}: {e}") # Log any exceptions in handlers
+                    logger.error(
+                        f"Error in event handler for {event}: {e}"
+                    )  # Log any exceptions in handlers
 
     # --- Utility Methods ---
     def _extract_region_from_url(self, url: str) -> str:
@@ -366,9 +483,13 @@ class AsyncWebSocketClient:
             str: The extracted region name (e.g., "LIVE", "DEMO", "UNKNOWN").
         """
         try:
-            parts = url.split("//")[1].split(".")[0] # Get the subdomain part of the URL
+            parts = url.split("//")[1].split(".")[
+                0
+            ]  # Get the subdomain part of the URL
             if "api-" in parts:
-                return parts.replace("api-", "").upper() # Extract and uppercase the region name
+                return parts.replace(
+                    "api-", ""
+                ).upper()  # Extract and uppercase the region name
             elif "demo" in parts:
                 return "DEMO"
             elif "try-demo" in parts:

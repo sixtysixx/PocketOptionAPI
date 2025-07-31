@@ -109,7 +109,7 @@ async def test_candles_retrieval():
         try:
             await client.disconnect()
             print("\nDisconnected from PocketOption")
-        except:
+        except Exception:
             pass
 
 
