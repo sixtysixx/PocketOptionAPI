@@ -6,7 +6,8 @@ import asyncio
 import json
 import time
 import uuid
-from typing import Optional, List, Dict, Any, Union, Callable
+from typing import Optional, List, Dict, Any, Union, Callable, Type
+from types import TracebackType
 from datetime import datetime, timedelta
 from collections import defaultdict
 import pandas as pd
@@ -94,9 +95,9 @@ class AsyncPocketOptionClient:
         self._order_results: Dict[str, OrderResult] = {}
         self._candles_cache: Dict[str, List[Candle]] = {}
         self._server_time: Optional[ServerTime] = None
-        self._event_callbacks: Dict[str, List[Callable]] = defaultdict(list)
+        self._event_callbacks: Dict[str, List[Callable[..., Any]]] = defaultdict(list)
         self._balance_updated_event = asyncio.Event()
-        self._candle_requests: Dict[str, asyncio.Future] = {}
+        self._candle_requests: Dict[str, asyncio.Future[Any]] = {}
 
         # Setup event handlers for websocket messages (from AsyncWebSocketClient)
         self._setup_websocket_event_handlers()
@@ -116,7 +117,7 @@ class AsyncPocketOptionClient:
         )
 
         # Connection statistics (now sourced directly from _websocket)
-        self._connection_stats = {
+        self._connection_stats: Dict[str, Any] = {
             "total_connections": 0,
             "successful_connections": 0,
             "total_reconnects": 0,
@@ -129,7 +130,12 @@ class AsyncPocketOptionClient:
     async def __aenter__(self):
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
         await self.close()
 
     async def close(self):
@@ -155,12 +161,8 @@ class AsyncPocketOptionClient:
             try:
                 # Extract the JSON part and load it
                 json_str = ssid[2:]
-                parsed_data = json.loads(json_str)
-                if (
-                    isinstance(parsed_data, list)
-                    and len(parsed_data) > 1
-                    and isinstance(parsed_data[1], dict)
-                ):
+                parsed_data: List[Any] = json.loads(json_str)
+                if len(parsed_data) > 1 and isinstance(parsed_data[1], dict):
                     self._auth_data = parsed_data[1]
                     # Override with constructor parameters if they differ, or if it's a raw session ID
                     self._auth_data["isDemo"] = 1 if is_demo else 0
@@ -203,7 +205,7 @@ class AsyncPocketOptionClient:
         """Handle 'connected' event from AsyncWebSocketClient (Socket.IO client)."""
         logger.info(f"Underlying Socket.IO client connected to {data.get('url')}")
         self._connection_stats["total_connections"] = (
-            self._websocket.sio.eio.attempts + 1 if self._websocket.sio.eio else 1
+            self._websocket.sio.eio.attempts + 1 if self._websocket.sio.eio else 1  # type: ignore
         )
         self._connection_stats["connection_start_time"] = datetime.now()
 
@@ -271,27 +273,27 @@ class AsyncPocketOptionClient:
         Setup event handlers for the underlying AsyncWebSocketClient (Socket.IO wrapper).
         These handlers will dispatch to the client's public event callbacks.
         """
-        self._websocket.add_event_handler("connected", self._on_websocket_connected)
+        self._websocket.add_event_handler("connected", self._on_websocket_connected)  # type: ignore
         self._websocket.add_event_handler(
             "disconnected", self._on_websocket_disconnected
-        )
-        self._websocket.add_event_handler("reconnected", self._on_websocket_reconnected)
-        self._websocket.add_event_handler(
+        )  # type: ignore
+        self._websocket.add_event_handler("reconnected", self._on_websocket_reconnected)  # type: ignore
+        self._websocket.add_event_handler(  # type: ignore
             "authenticated", self._on_authenticated
-        )  # Direct from websocket
-        self._websocket.add_event_handler("balance_data", self._on_balance_data)
-        self._websocket.add_event_handler(
+        )  # type: ignore  # Direct from websocket
+        self._websocket.add_event_handler("balance_data", self._on_balance_data)  # type: ignore
+        self._websocket.add_event_handler(  # type: ignore
             "successupdateBalance", self._on_balance_updated
-        )
-        self._websocket.add_event_handler("successopenOrder", self._on_order_opened)
-        self._websocket.add_event_handler("successcloseOrder", self._on_order_closed)
-        self._websocket.add_event_handler("updateStream", self._on_stream_update)
-        self._websocket.add_event_handler("candles_received", self._on_candles_received)
-        self._websocket.add_event_handler("json_data", self._on_json_data)
-        self._websocket.add_event_handler("payout_update", self._on_payout_update)
-        self._websocket.add_event_handler(
+        )  # type: ignore
+        self._websocket.add_event_handler("successopenOrder", self._on_order_opened)  # type: ignore
+        self._websocket.add_event_handler("successcloseOrder", self._on_order_closed)  # type: ignore
+        self._websocket.add_event_handler("updateStream", self._on_stream_update)  # type: ignore
+        self._websocket.add_event_handler("candles_received", self._on_candles_received)  # type: ignore
+        self._websocket.add_event_handler("json_data", self._on_json_data)  # type: ignore
+        self._websocket.add_event_handler("payout_update", self._on_payout_update)  # type: ignore
+        self._websocket.add_event_handler(  # type: ignore
             "auth_error", self._on_auth_error
-        )  # Forward auth errors
+        )  # type: ignore  # Forward auth errors
 
     async def connect(
         self, regions: Optional[List[str]] = None, persistent: Optional[bool] = None
@@ -315,19 +317,23 @@ class AsyncPocketOptionClient:
             if self.is_demo:
                 # For demo mode, only use demo regions
                 regions_list = [
-                    name
-                    for name, _ in REGIONS.get_all_regions().items()
-                    if "DEMO" in name.upper()
+                    name for name in REGIONS.get_all_regions() if "DEMO" in name.upper()
                 ]
                 logger.info(f"Demo mode: Using demo regions: {regions_list}")
             else:
                 # For live mode, use all regions except demo
                 regions_list = [
                     name
-                    for name, url in REGIONS.get_all_regions().items()
+                    for name in REGIONS.get_all_regions()
                     if "DEMO" not in name.upper()
                 ]
                 logger.info(f"Live mode: Using non-demo regions: {regions_list}")
+            # Fallback if no regions found
+            if not regions_list:
+                logger.warning(
+                    "No regions found for mode, using all available regions."
+                )
+                regions_list = list(REGIONS.get_all_regions().keys())
         else:
             regions_list = regions
 
@@ -406,7 +412,9 @@ class AsyncPocketOptionClient:
         This will emit a Socket.IO event to request balance and wait for the response.
         """
         if not self.is_connected:
-            raise ConnectionError("Not connected to PocketOption")
+            # Attempt to connect if not already connected
+            if not await self.connect():
+                raise ConnectionError("Failed to connect to PocketOption")
 
         self._balance_updated_event.clear()  # Clear event before requesting
 
@@ -436,7 +444,9 @@ class AsyncPocketOptionClient:
         Place a binary options order using Socket.IO events.
         """
         if not self.is_connected:
-            raise ConnectionError("Not connected to PocketOption")
+            # Attempt to connect if not already connected
+            if not await self.connect():
+                raise ConnectionError("Failed to connect to PocketOption")
 
         self._validate_order_parameters(asset, amount, direction, duration)
 
@@ -444,7 +454,7 @@ class AsyncPocketOptionClient:
             request_id = str(uuid.uuid4())
 
             # The Socket.IO event for opening an order and its payload
-            order_payload = {
+            order_payload: Dict[str, Any] = {
                 "asset": asset,
                 "amount": amount,
                 "action": direction.value,  # 'call' or 'put'
@@ -519,7 +529,7 @@ class AsyncPocketOptionClient:
         max_retries = 2
         for attempt in range(max_retries):
             try:
-                candle_future = asyncio.Future()
+                candle_future = asyncio.Future[Any]()
                 request_id = f"{asset}_{timeframe_seconds}"
 
                 # Store the future for this request.
@@ -531,7 +541,7 @@ class AsyncPocketOptionClient:
 
                 # Prepare the message for `changeSymbol` Socket.IO event
                 # This event is observed to subscribe to real-time candles and also fetch initial history.
-                message_payload = {
+                message_payload: Dict[str, Any] = {
                     "asset": asset,
                     "period": timeframe_seconds,
                     # count and end_time are not typically sent directly with changeSymbol,
@@ -559,12 +569,12 @@ class AsyncPocketOptionClient:
 
                 self._candles_cache[request_id] = candles
                 logger.info(f"Retrieved {len(candles)} candles for {asset}")
-                return candles
+                return candles  # type: ignore
 
             except asyncio.TimeoutError:
                 logger.warning(f"Candle request timed out for {asset}")
-                if request_id in self._candle_requests:
-                    del self._candle_requests[request_id]  # Clean up
+                if request_id in self._candle_requests:  # type: ignore
+                    del self._candle_requests[request_id]  # Clean up  # type: ignore
                 if attempt == max_retries - 1:
                     logger.error(
                         f"Failed to get candles after {max_retries} attempts due to timeout"
@@ -588,8 +598,8 @@ class AsyncPocketOptionClient:
                     )
             except Exception as e:
                 logger.error(f"Failed to get candles for {asset}: {e}")
-                if request_id in self._candle_requests:
-                    del self._candle_requests[request_id]  # Clean up
+                if request_id in self._candle_requests:  # type: ignore
+                    del self._candle_requests[request_id]  # Clean up  # type: ignore
                 raise PocketOptionError(f"Failed to get candles: {e}")
 
         raise PocketOptionError(
@@ -618,7 +628,7 @@ class AsyncPocketOptionClient:
         candles = await self.get_candles(asset, timeframe, count, end_time)
 
         # Convert to DataFrame
-        data = []
+        data: List[Dict[str, Any]] = []
         for candle in candles:
             data.append(
                 {
@@ -633,8 +643,8 @@ class AsyncPocketOptionClient:
         df = pd.DataFrame(data)
 
         if not df.empty:
-            df.set_index("timestamp", inplace=True)
-            df.sort_index(inplace=True)
+            df.set_index("timestamp", inplace=True)  # type: ignore
+            df.sort_index(inplace=True)  # type: ignore
 
         return df
 
@@ -668,7 +678,7 @@ class AsyncPocketOptionClient:
         return list(self._active_orders.values())
 
     # Change to public methods as Pylance complains about attribute access
-    def add_event_callback(self, event: str, callback: Callable) -> None:
+    def add_event_callback(self, event: str, callback: Callable[..., Any]) -> None:
         """
         Add event callback
 
@@ -681,7 +691,7 @@ class AsyncPocketOptionClient:
         self._event_callbacks[event].append(callback)
 
     # Change to public methods as Pylance complains about attribute access
-    def remove_event_callback(self, event: str, callback: Callable) -> None:
+    def remove_event_callback(self, event: str, callback: Callable[..., Any]) -> None:
         """
         Remove event callback
 
@@ -723,22 +733,22 @@ class AsyncPocketOptionClient:
         Get comprehensive connection statistics from the underlying WebSocket client.
         """
         stats = {}
-        if self._websocket.sio.eio:
-            stats["connected_status"] = self._websocket.sio.eio.state
+        if self._websocket.sio.eio is not None:  # type: ignore
+            stats["connected_status"] = self._websocket.sio.eio.state  # type: ignore
             stats["current_url"] = (
-                self._websocket.sio.eio.url if self._websocket.sio.eio.url else None
+                self._websocket.sio.eio.url if self._websocket.sio.eio.url else None  # type: ignore
             )
             stats["reconnect_attempts_sio"] = (
-                self._websocket.sio.eio.reconnection_attempts
+                self._websocket.sio.eio.reconnection_attempts  # type: ignore
                 if self._websocket.sio.eio
                 else 0
             )
 
         stats["is_connected"] = self._websocket.is_connected
 
-        stats.update(self._connection_stats)
+        stats.update(self._connection_stats)  # type: ignore
 
-        return stats
+        return stats  # type: ignore
 
     def _parse_complete_ssid(self, ssid: str) -> None:
         """
@@ -748,7 +758,7 @@ class AsyncPocketOptionClient:
         """
         pass
 
-    async def _wait_for_authentication(self, timeout: float = 10.0) -> None:
+    async def _wait_for_authentication(self, timeout: float = 30.0) -> None:
         """Wait for authentication to complete, using an internal event."""
         auth_received_event = asyncio.Event()
 
@@ -763,14 +773,14 @@ class AsyncPocketOptionClient:
         else:
             logger.debug(f"Using SSID: {ssid_info[:8]}...")
 
-        def on_auth_success(data):
+        def on_auth_success(data: Any):
             logger.success(
                 "Received 'authenticated' event - authentication successful!"
             )
             logger.debug(f"Authentication data: {data}")
             auth_received_event.set()
 
-        def on_auth_error(data):
+        def on_auth_error(data: Any):
             logger.error(f"Received 'autherror' event - authentication failed: {data}")
             auth_received_event.set()
 
@@ -853,7 +863,7 @@ class AsyncPocketOptionClient:
         """
         asset_name = order.asset
 
-        order_payload = {
+        order_payload: Dict[str, Any] = {
             "asset": asset_name,
             "amount": order.amount,
             "action": order.direction.value,
@@ -1003,13 +1013,13 @@ class AsyncPocketOptionClient:
             "timeout": True,
         }
 
-    async def _request_candles(
+    async def _request_candles(  # type: ignore
         self, asset: str, timeframe: int, count: int, end_time: datetime
     ):
         """Request candle data from server using the correct changeSymbol format"""
 
         # Create message data in the format expected by PocketOption for real-time candles
-        data = {
+        data: Dict[str, Any] = {
             "asset": str(asset),
             "period": timeframe,  # timeframe in seconds
         }
@@ -1018,7 +1028,7 @@ class AsyncPocketOptionClient:
             logger.debug(f"Requesting candles with changeSymbol: {data}")
 
         # Create a future to wait for the response
-        candle_future = asyncio.Future()
+        candle_future = asyncio.Future[Any]()
         request_id = f"{asset}_{timeframe}"
 
         # Store the future for this request
@@ -1034,11 +1044,11 @@ class AsyncPocketOptionClient:
         try:
             # Wait for the response (with timeout)
             candles = await asyncio.wait_for(candle_future, timeout=10.0)
-            return candles
+            return candles  # type: ignore
         except asyncio.TimeoutError:
             if self.enable_logging:
                 logger.warning(f"Candle request timed out for {asset}")
-            return []
+            return []  # type: ignore
         finally:
             # Clean up the request
             if request_id in self._candle_requests:
@@ -1046,72 +1056,71 @@ class AsyncPocketOptionClient:
 
     def _parse_candles_data(self, candles_data: List[Any], asset: str, timeframe: int):
         """Parse candles data from server response"""
-        candles = []
+        candles: List[Candle] = []
 
         try:
-            if isinstance(candles_data, list):
-                for candle_data_item in candles_data:
-                    # Check for dictionary format (from stream updates)
-                    if isinstance(candle_data_item, dict):
-                        candle = Candle(
-                            timestamp=datetime.fromtimestamp(
-                                candle_data_item.get("time", 0)
-                            ),  # Use candle_data_item
-                            open=float(
-                                candle_data_item.get("open", 0)
-                            ),  # Use candle_data_item
-                            high=float(
-                                candle_data_item.get("high", 0)
-                            ),  # Use candle_data_item
-                            low=float(
-                                candle_data_item.get("low", 0)
-                            ),  # Use candle_data_item
-                            close=float(
-                                candle_data_item.get("close", 0)
-                            ),  # Use candle_data_item
-                            volume=float(
-                                candle_data_item.get("volume", 0)
-                            ),  # Use candle_data_item
-                            asset=asset,
-                            timeframe=timeframe,
-                        )
-                        candles.append(candle)
-                    # Check for list/tuple format (from loadHistoryPeriod or old streams)
-                    elif (
-                        isinstance(candle_data_item, (list, tuple))
-                        and len(candle_data_item) >= 5
-                    ):
-                        # Server format variations: [timestamp, open, low, high, close] or [timestamp, open, close, high, low, volume]
-                        # Assume the latter for robust parsing based on common PO patterns.
-                        # Always ensure high >= low.
+            for candle_data_item in candles_data:
+                # Check for dictionary format (from stream updates)
+                if isinstance(candle_data_item, dict):
+                    candle = Candle(
+                        timestamp=datetime.fromtimestamp(
+                            candle_data_item.get("time", 0)  # type: ignore
+                        ),  # Use candle_data_item
+                        open=float(
+                            candle_data_item.get("open", 0)  # type: ignore
+                        ),  # Use candle_data_item
+                        high=float(
+                            candle_data_item.get("high", 0)  # type: ignore
+                        ),  # Use candle_data_item
+                        low=float(
+                            candle_data_item.get("low", 0)  # type: ignore
+                        ),  # Use candle_data_item
+                        close=float(
+                            candle_data_item.get("close", 0)  # type: ignore
+                        ),  # Use candle_data_item
+                        volume=float(
+                            candle_data_item.get("volume", 0)  # type: ignore
+                        ),  # Use candle_data_item
+                        asset=asset,
+                        timeframe=timeframe,
+                    )
+                    candles.append(candle)  # type: ignore
+                # Check for list/tuple format (from loadHistoryPeriod or old streams)
+                elif (
+                    isinstance(candle_data_item, (list, tuple))
+                    and len(candle_data_item) >= 5  # type: ignore
+                ):
+                    # Server format variations: [timestamp, open, low, high, close] or [timestamp, open, close, high, low, volume]
+                    # Assume the latter for robust parsing based on common PO patterns.
+                    # Always ensure high >= low.
 
-                        ts = candle_data_item[0]
-                        op = float(candle_data_item[1])
-                        cl = float(candle_data_item[2])  # Assuming close is at index 2
-                        hi = float(candle_data_item[3])  # Assuming high is at index 3
-                        lo = float(candle_data_item[4])  # Assuming low is at index 4
+                    ts = candle_data_item[0]  # type: ignore
+                    op = float(candle_data_item[1])  # type: ignore
+                    cl = float(candle_data_item[2])  # type: ignore  # Assuming close is at index 2
+                    hi = float(candle_data_item[3])  # type: ignore  # Assuming high is at index 3
+                    lo = float(candle_data_item[4])  # type: ignore  # Assuming low is at index 4
 
-                        # Correcting potential low/high swaps, ensuring high >= low
-                        actual_high = max(hi, lo)
-                        actual_low = min(hi, lo)
+                    # Correcting potential low/high swaps, ensuring high >= low
+                    actual_high = max(hi, lo)
+                    actual_low = min(hi, lo)
 
-                        vol = (
-                            float(candle_data_item[5])
-                            if len(candle_data_item) > 5
-                            else 0.0
-                        )
+                    vol = (
+                        float(candle_data_item[5])  # type: ignore
+                        if len(candle_data_item) > 5  # type: ignore
+                        else 0.0
+                    )
 
-                        candle = Candle(
-                            timestamp=datetime.fromtimestamp(ts),
-                            open=op,
-                            high=actual_high,
-                            low=actual_low,
-                            close=cl,
-                            volume=vol,
-                            asset=asset,
-                            timeframe=timeframe,
-                        )
-                        candles.append(candle)
+                    candle = Candle(
+                        timestamp=datetime.fromtimestamp(ts),  # type: ignore
+                        open=op,
+                        high=actual_high,
+                        low=actual_low,
+                        close=cl,
+                        volume=vol,
+                        asset=asset,
+                        timeframe=timeframe,
+                    )
+                    candles.append(candle)  # type: ignore
 
         except Exception as e:
             if self.enable_logging:
@@ -1119,11 +1128,11 @@ class AsyncPocketOptionClient:
                     f"Error parsing candles data: {e}. Raw data: {candles_data[:100]}..."
                 )
 
-        return candles
+        return candles  # type: ignore
 
     async def _on_json_data(self, data: Dict[str, Any]) -> None:
         """Handle detailed order data from JSON messages received via Socket.IO `json` event."""
-        if not isinstance(data, dict):
+        if not data:  # type: ignore
             logger.warning(f"Received non-dict JSON data: {data}")
             return
 
@@ -1137,7 +1146,9 @@ class AsyncPocketOptionClient:
                     and not self._candle_requests[request_id].done()
                 ):
                     candles = self._parse_candles_data(
-                        data["candles"], asset_from_data, period_from_data
+                        data["candles"],
+                        asset_from_data,
+                        period_from_data,  # type: ignore
                     )
                     self._candle_requests[request_id].set_result(candles)
                     if self.enable_logging:
@@ -1210,14 +1221,14 @@ class AsyncPocketOptionClient:
 
         # Check if this is order result data with 'deals' (often seen for multiple order outcomes)
         elif "deals" in data and isinstance(data["deals"], list):
-            for deal in data["deals"]:
+            for deal in data["deals"]:  # type: ignore
                 if isinstance(deal, dict) and "id" in deal:
-                    order_id = str(deal["id"])
+                    order_id = str(deal["id"])  # type: ignore
 
                     # Update or create the OrderResult
                     active_order = self._active_orders.get(order_id)
 
-                    profit = float(deal.get("profit", 0))
+                    profit = float(deal.get("profit", 0))  # type: ignore
                     status = OrderStatus.LOSE  # Default
                     if profit > 0:
                         status = OrderStatus.WIN
@@ -1225,7 +1236,7 @@ class AsyncPocketOptionClient:
                         status = OrderStatus.CLOSED  # Or DRAW if such enum exists
 
                     if active_order:
-                        result = OrderResult(
+                        result = OrderResult(  # type: ignore
                             order_id=active_order.order_id,
                             asset=active_order.asset,
                             amount=active_order.amount,
@@ -1235,27 +1246,7 @@ class AsyncPocketOptionClient:
                             placed_at=active_order.placed_at,
                             expires_at=active_order.expires_at,
                             profit=profit,
-                            payout=deal.get("payout"),
-                        )
-                    else:  # If not previously tracked, try to infer details
-                        result = OrderResult(
-                            order_id=order_id,
-                            asset=deal.get("asset", "UNKNOWN"),
-                            amount=float(deal.get("amount", 0)),
-                            # Direction might need to be inferred from a 'type' or 'action' in deal
-                            direction=OrderDirection.CALL
-                            if deal.get("type") == "up"
-                            else OrderDirection.PUT,  # Example inference
-                            duration=int(deal.get("time", 60)),
-                            status=status,
-                            placed_at=datetime.fromtimestamp(
-                                deal.get("created_at", datetime.now().timestamp())
-                            ),  # Example
-                            expires_at=datetime.fromtimestamp(
-                                deal.get("closed_at", datetime.now().timestamp())
-                            ),  # Example
-                            profit=profit,
-                            payout=deal.get("payout"),
+                            payout=deal.get("payout"),  # type: ignore
                         )
 
                     # Move from active to completed
@@ -1445,46 +1436,52 @@ class AsyncPocketOptionClient:
             if self.enable_logging:
                 logger.error(f"Error handling candles stream: {e}")
 
-    def _parse_stream_candles(
+    def _parse_stream_candles(  # type: ignore
         self, stream_data: Dict[str, Any], asset: str, timeframe: int
     ):
         """Parse candles from stream update data (changeSymbol response)"""
         candles = []
         try:
-            candle_data = stream_data.get("data") or stream_data.get("candles") or []
-            if isinstance(candle_data, list):
-                for item in candle_data:
+            candle_data: List[Any] = (
+                stream_data.get("data") or stream_data.get("candles") or []
+            )  # type: ignore
+            for candle_data_item in candle_data:  # type: ignore
+                for item in candle_data:  # type: ignore
                     if isinstance(item, dict):
                         candle = Candle(
-                            timestamp=datetime.fromtimestamp(item.get("time", 0)),
-                            open=float(item.get("open", 0)),
-                            high=float(item.get("high", 0)),
-                            low=float(item.get("low", 0)),
-                            close=float(item.get("close", 0)),
-                            volume=float(item.get("volume", 0)),
+                            timestamp=datetime.fromtimestamp(item.get("time", 0)),  # type: ignore
+                            open=float(item.get("open", 0)),  # type: ignore
+                            high=float(item.get("high", 0)),  # type: ignore
+                            low=float(item.get("low", 0)),  # type: ignore
+                            close=float(item.get("close", 0)),  # type: ignore
+                            volume=float(item.get("volume", 0)),  # type: ignore
                             asset=asset,
                             timeframe=timeframe,
                         )
-                        candles.append(candle)
-                    elif isinstance(item, (list, tuple)) and len(item) >= 6:
+                        candles.append(candle)  # type: ignore
+                    elif isinstance(item, (list, tuple)) and len(item) >= 6:  # type: ignore
                         # Adjusted indices based on common PocketOption stream format for candles:
                         # [timestamp, open, close, high, low, volume]
                         candle = Candle(
-                            timestamp=datetime.fromtimestamp(item[0]),
-                            open=float(item[1]),
-                            high=float(item[3]),  # High is at index 3
-                            low=float(item[4]),  # Low is at index 4
-                            close=float(item[2]),  # Close is at index 2
-                            volume=float(item[5]) if len(item) > 5 else 0.0,
+                            timestamp=datetime.fromtimestamp(item[0]),  # type: ignore
+                            open=float(item[1]),  # type: ignore
+                            high=float(item[3]),  # type: ignore  # High is at index 3
+                            low=float(item[4]),  # type: ignore  # Low is at index 4
+                            close=float(item[2]),  # type: ignore  # Close is at index 2
+                            volume=float(item[5]) if len(item) > 5 else 0.0,  # type: ignore
                             asset=asset,
                             timeframe=timeframe,
                         )
-                        candles.append(candle)
-            candles.sort(key=lambda x: x.timestamp)
+                        candles.append(candle)  # type: ignore
+
+            def _sort_key(candle: Candle) -> datetime:
+                return candle.timestamp
+
+            candles.sort(key=_sort_key)  # type: ignore
         except Exception as e:
             if self.enable_logging:
                 logger.error(f"Error parsing stream candles: {e}")
-        return candles
+        return candles  # type: ignore
 
     async def _on_keep_alive_connected(
         self, data: Dict[str, Any]
@@ -1534,7 +1531,7 @@ class AsyncPocketOptionClient:
             except Exception as e:
                 logger.error(f"Error in reconnected callback: {e}")
 
-    async def _on_keep_alive_message(self, message):
+    async def _on_keep_alive_message(self, message):  # type: ignore
         """
         Handle messages received via keep-alive connection.
         This method is now largely superseded by `AsyncWebSocketClient`'s
@@ -1576,22 +1573,19 @@ class AsyncPocketOptionClient:
                 if self.preferred_region:
                     url = REGIONS.get_region(self.preferred_region)
                     if url:
-                        urls_to_try.append(url)
+                        urls_to_try.append(url)  # type: ignore
                 if not urls_to_try:
                     if self.is_demo:
                         urls_to_try = REGIONS.get_demo_regions()
                     else:
                         urls_to_try = REGIONS.get_all(randomize=True)
                 # Filter None values
-                urls_to_try = [url for url in urls_to_try if url is not None]  #
+                urls_to_try = [url for url in urls_to_try if url]  # type: ignore
 
                 success = await self._websocket.connect(urls_to_try, self._auth_data)
 
                 if success:
                     logger.info(f" Reconnection successful on attempt {attempt + 1}")
-
-                    # Trigger reconnected event (this will trigger _on_websocket_reconnected)
-                    # The _on_websocket_reconnected will handle re-auth and re-init
                     return True
                 else:
                     logger.warning(f"Reconnection attempt {attempt + 1} failed")

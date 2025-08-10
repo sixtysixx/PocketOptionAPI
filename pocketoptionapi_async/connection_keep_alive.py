@@ -6,8 +6,8 @@ message processing, mimicking the behavior of a long-running client.
 """
 
 import asyncio
-import json  # Import json for parsing messages
-import ssl  # Import ssl for WebSocket secure connections
+import json
+import ssl
 from typing import Optional, List, Callable, Dict, Any
 from datetime import datetime, timedelta
 from loguru import logger
@@ -16,7 +16,7 @@ import socketio
 from .models import ConnectionInfo, ConnectionStatus
 from .constants import (
     REGIONS,
-)  # Import DEFAULT_HEADERS for random User-Agent
+)
 
 
 class ConnectionKeepAlive:
@@ -427,7 +427,7 @@ async def demo_keep_alive():
     """
     logger.info("Testing: Testing Enhanced Keep-Alive Connection Manager")
 
-    # Example complete SSID in the new '42["auth",...]' format.
+    # Example complete SSID in the '42["auth",...]' format.
     # Replace with your actual SSID for live testing.
     ssid = r'42["auth",{"session":"n1p5ah5u8t9438rbunpgrq0hlq","isDemo":1,"uid":0,"platform":1}]'
 

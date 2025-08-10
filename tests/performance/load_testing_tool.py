@@ -326,7 +326,7 @@ class LoadTester:
                 try:
                     if keep_alive.websocket:
                         await keep_alive.websocket.disconnect()
-                except Exception as e:
+                except Exception:
                     pass
 
     def _choose_operation_type(self, include_trading: bool) -> str:
