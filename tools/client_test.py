@@ -28,8 +28,6 @@ async def websocket_client(pro_callback):
     for url in region_urls:
         print(f"Trying to connect to {url}...")
         try:
-            # Establish WebSocket connection.
-            # Use DEFAULT_HEADERS which includes a random User-Agent for each connection attempt.
             sio = socketio.AsyncClient()
 
             @sio.event
@@ -39,14 +37,11 @@ async def websocket_client(pro_callback):
             await sio.connect(url, headers=DEFAULT_HEADERS)
             print(f"Successfully connected to {url}. Listening for messages...")
 
-            # Keep connection alive until disconnected
             await sio.wait()
         except KeyboardInterrupt:
-            # Allow graceful exit on Ctrl+C.
             print("Exiting due to KeyboardInterrupt.")
             exit()
         except Exception as e:
-            # Log connection errors and attempt to reconnect to the next region.
             print(f"Connection to {url} lost or failed: {e}. Trying next region...")
     return True
 
@@ -73,15 +68,15 @@ async def pro(message, websocket, connected_url):
     # These messages are part of the Socket.IO handshake protocol.
     # The `websocket.host` is used for clearer logging of the connected server.
 
-    # Step 1: Server sends "0" message with session ID. Client responds with "40".
+    # Server sends "0" message with session ID. Client responds with "40".
     if message.startswith('0{"sid":"'):
         print(f"{websocket.host} received initial '0' message, sending '40' response.")
         await websocket.send("40")
-    # Step 2: Server sends "2" message (ping). Client responds with "3" (pong).
+    # Server sends "2" message (ping). Client responds with "3" (pong).
     elif message == "2":
         print(f"{websocket.host} received '2' (ping), sending '3' (pong).")
         await websocket.send("3")
-    # Step 3: Server sends "40" message with session ID (connection confirmed). Client sends authentication SESSION.
+    # Server sends "40" message with session ID (connection confirmed). Client sends authentication SESSION.
     elif message.startswith('40{"sid":"'):
         print(
             f"{websocket.host} received '40' (connection confirmed), sending authentication SESSION."

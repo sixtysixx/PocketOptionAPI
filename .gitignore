@@ -135,6 +135,7 @@ pocketoption_async.log
 *.swp
 *.swo
 *~
+typings
 
 # OS
 .DS_Store

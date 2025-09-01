@@ -6,10 +6,8 @@ Fully async implementation with modern Python practices
 from .client import AsyncPocketOptionClient
 from .exceptions import (
     PocketOptionError,
-    ConnectionError,
     AuthenticationError,
     OrderError,
-    TimeoutError,
     InvalidParameterError,
     WebSocketError,
 )
@@ -46,10 +44,8 @@ __author__ = "PocketOptionAPI Team"
 __all__ = [
     "AsyncPocketOptionClient",
     "PocketOptionError",
-    "ConnectionError",
     "AuthenticationError",
     "OrderError",
-    "TimeoutError",
     "InvalidParameterError",
     "WebSocketError",
     "Balance",

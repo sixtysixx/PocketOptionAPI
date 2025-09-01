@@ -52,22 +52,22 @@ class AsyncWebSocketClient:
         )
 
         # Internal event handlers for standard Socket.IO events
-        self.sio.on(  # type: ignore
+        self.sio.on(
             "connect", self._on_sio_connect
         )  # Handler for successful connection
-        self.sio.on("disconnect", self._on_sio_disconnect)  # type: ignore # Handler for disconnection
-        self.sio.on(  # type: ignore
+        self.sio.on("disconnect", self._on_sio_disconnect)  # Handler for disconnection
+        self.sio.on(
             "reconnect", self._on_sio_reconnect
         )  # Handler for successful reconnection
-        self.sio.on(  # type: ignore
+        self.sio.on(
             "connect_error", self._on_sio_connect_error
         )  # Handler for connection errors
 
         # Catch-all handlers for other Socket.IO messages that don't have explicit handlers
-        self.sio.on(  # type: ignore
+        self.sio.on(
             "message", self._on_sio_message
         )  # Handler for generic 'message' events (raw data)
-        self.sio.on(  # type: ignore
+        self.sio.on(
             "json", self._on_sio_json
         )  # Handler for 'json' events (parsed '42' messages)
 
@@ -114,12 +114,12 @@ class AsyncWebSocketClient:
 
                 # Connect to the Socket.IO server.
                 # The 'auth' parameter sends authentication data during the handshake.
-                await self.sio.connect(  # type: ignore
+                await self.sio.connect(
                     base_url,
                     transports=["websocket"],  # Explicitly specify WebSocket transport
                     headers=DEFAULT_HEADERS,  # Use predefined default headers (e.g., User-Agent)
                     auth=auth_data,  # Pass authentication data for handshake
-                )  # type: ignore
+                )
 
                 if (
                     self.sio.connected
@@ -209,9 +209,9 @@ class AsyncWebSocketClient:
         try:
             # Emit event. python-socketio handles the framing (e.g., '42["event_name", data]')
             if data is not None:  # If data payload is provided
-                await self.sio.emit(event_name, data)  # type: ignore # Emit the event with data
+                await self.sio.emit(event_name, data)  # Emit the event with data
             else:  # If no data payload
-                await self.sio.emit(event_name)  # type: ignore # Emit the event without data
+                await self.sio.emit(event_name)  # Emit the event without data
 
             logger.debug(
                 f"Emitted Socket.IO event: '{event_name}' with data: {data}"
@@ -350,7 +350,9 @@ class AsyncWebSocketClient:
             f"Socket.IO 'json' event received: {data}"
         )  # Log the raw JSON data
 
-        if isinstance(data, list) and len(data) > 0:  # type: ignore # Check if data is a list (common for S.IO events)
+        if (
+            isinstance(data, list) and len(data) > 0
+        ):  # Check if data is a list (common for S.IO events)
             event_type: str = data[0]  # First element is the event type
             event_data: Dict[str, Any] = (
                 data[1] if len(data) > 1 else {}

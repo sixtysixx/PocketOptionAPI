@@ -333,9 +333,8 @@ class ConnectionKeepAlive:
                 self.connection_stats["total_messages_sent"] += 1
                 logger.debug(f"Message: Sent: {message[:50]}...")
                 return True
-            else:
-                logger.warning("Caution: Cannot send message: not connected.")
-                return False
+            logger.warning("Caution: Cannot send message: not connected.")
+            return False
         except Exception as e:
             logger.error(f"Error: Failed to send message: {e}")
             self.is_connected = False  # Mark as disconnected on send failure
@@ -388,7 +387,7 @@ class ConnectionKeepAlive:
             parts = url.split("//")[1].split(".")[0]
             if "api-" in parts:
                 return parts.replace("api-", "").upper()
-            elif "demo" in parts:
+            if "demo" in parts:
                 return "DEMO"
             else:
                 return "UNKNOWN"

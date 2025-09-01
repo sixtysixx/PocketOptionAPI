@@ -16,6 +16,7 @@ from tests.performance.load_testing_tool import (
     LoadTestConfig,
 )
 
+SETSSID = '' #lowk dont even know if this works
 
 async def demo_ssid_format_support():
     """Demo: Complete SSID format support"""
@@ -23,7 +24,7 @@ async def demo_ssid_format_support():
     logger.info("=" * 50)
 
     # Example complete SSID (demo format)
-    complete_ssid = r'42["auth",{"session":"demo_session_12345","isDemo":1,"uid":12345,"platform":1}]'
+    complete_ssid = r'42["auth",{"session":"a:4:{s:10:\"session_id\";s:32:\"SESSION_ID_PLACEHOLDER\";s:10:\"ip_address\";s:14:\"1.1.1.1\";s:10:\"user_agent\";s:80:\"meow";s:13:\"last_activity\";i:1756438122;}188aa6d3edd50a579c7ff5f8cc771cb1","isDemo":0,"uid":12345678,"platform":2,"isFastHistory":true,"isOptimized":true}]'
 
     logger.info("Success: SUPPORTED SSID FORMATS:")
     logger.info("• Complete authentication strings (like from browser)")
@@ -65,7 +66,7 @@ async def demo_persistent_connection():
     logger.info("\nPersistent: Demo: Persistent Connection with Keep-Alive")
     logger.info("=" * 50)
 
-    ssid = r'42["auth",{"session":"demo_persistent","isDemo":1,"uid":0,"platform":1}]'
+    ssid = SETSSID
 
     logger.info("Starting persistent connection with automatic keep-alive...")
 
@@ -183,7 +184,7 @@ async def demo_advanced_monitoring():
     logger.info("\nAnalysis: Demo: Advanced Monitoring and Diagnostics")
     logger.info("=" * 50)
 
-    ssid = r'42["auth",{"session":"demo_monitoring","isDemo":1,"uid":0,"platform":1}]'
+    ssid = SETSSID
 
     logger.info("Resources: Starting advanced connection monitor...")
 
@@ -263,7 +264,7 @@ async def demo_load_testing():
     logger.info("\nStarting: Demo: Load Testing and Stress Testing")
     logger.info("=" * 50)
 
-    ssid = r'42["auth",{"session":"demo_load_test","isDemo":1,"uid":0,"platform":1}]'
+    ssid = SETSSID
 
     logger.info("Performance: Running mini load test demonstration...")
 
@@ -331,7 +332,7 @@ async def demo_error_handling():
     logger.info("=" * 50)
 
     ssid = (
-        r'42["auth",{"session":"demo_error_handling","isDemo":1,"uid":0,"platform":1}]'
+        SETSSID
     )
 
     logger.info(
@@ -431,7 +432,7 @@ async def demo_data_operations():
     logger.info("\nStatistics: Demo: Enhanced Data Operations")
     logger.info("=" * 50)
 
-    ssid = r'42["auth",{"session":"demo_data_ops","isDemo":1,"uid":0,"platform":1}]'
+    ssid = SETSSID
 
     logger.info("Retrieved: Demonstrating enhanced data retrieval...")
 
@@ -525,7 +526,7 @@ async def demo_performance_optimizations():
     logger.info("\nPerformance: Demo: Performance Optimizations")
     logger.info("=" * 50)
 
-    ssid = r'42["auth",{"session":"demo_performance","isDemo":1,"uid":0,"platform":1}]'
+    ssid = SETSSID
 
     logger.info("Starting: Demonstrating performance enhancements...")
 
