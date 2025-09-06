@@ -13,10 +13,10 @@ from collections import defaultdict
 import pandas as pd
 from loguru import logger
 
-from .monitoring import error_monitor, health_checker, ErrorCategory, ErrorSeverity
+from pocketoptionapi_async.monitoring import error_monitor, health_checker, ErrorCategory, ErrorSeverity
 
-from .websocket_client import AsyncWebSocketClient
-from .models import (
+from pocketoptionapi_async.websocket_client import AsyncWebSocketClient
+from pocketoptionapi_async.models import (
     Balance,
     Candle,
     Order,
@@ -26,8 +26,8 @@ from .models import (
     ServerTime,
     ConnectionInfo,
 )
-from .constants import ASSETS, REGIONS, TIMEFRAMES, API_LIMITS
-from .exceptions import (
+from pocketoptionapi_async.constants import ASSETS, REGIONS, TIMEFRAMES, API_LIMITS
+from pocketoptionapi_async.exceptions import (
     PocketOptionError,
     AuthenticationError,
     InvalidParameterError,

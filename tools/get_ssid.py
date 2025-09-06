@@ -100,7 +100,7 @@ def get_pocketoption_ssid(
     try:
         # Initialize the Selenium WebDriver.
         logger.info("Initializing WebDriver...")
-        driver = get_driver(browser)
+        driver = get_driver(browser, message="auth")
         login_url = "https://pocketoption.com/en/login/"  # The explicit login page URL.
         cabinet_base_url = (
             "https://pocketoption.com/en/cabinet"  # The base URL of the user cabinet.

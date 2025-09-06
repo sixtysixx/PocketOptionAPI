@@ -3,6 +3,10 @@ Comprehensive Demo of Enhanced PocketOption Async API
 Showcases all advanced features and improvements
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+
 import asyncio
 import time
 from datetime import datetime
