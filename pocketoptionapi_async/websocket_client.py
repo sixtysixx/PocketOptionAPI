@@ -125,7 +125,7 @@ class AsyncWebSocketClient:
                     self.sio.connected
                 ):  # Check if the Socket.IO client is successfully connected
                     self._current_url = (
-                        url  # Store the full URL of the successful connection
+                        base_url  # Store the base URL of the successful connection
                     )
                     region = self._extract_region_from_url(
                         url

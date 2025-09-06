@@ -44,7 +44,7 @@ async def demo_enhanced_features():
 
         print("Success: Client created with parsed components:")
         print("")
-        print(f"Session ID: {getattr(client, 'session_id', 'N/A')[:20]}...")
+        print(f"Session ID: {client._auth_data.get('session', '')[:20]}...")
         print(f"UID: {client.uid}")
         print(f"Platform: {client.platform}")
         print(f"Demo Mode: {client.is_demo}")

@@ -155,28 +155,33 @@ class AsyncPocketOptionClient:
         Parses the provided SSID or constructs auth data from parameters.
         This prepares the dictionary to be passed to socketio.AsyncClient's `auth` parameter.
         """
-        # If the SSID starts with '42["auth",', try to parse it directly
-        if ssid.startswith('42["auth",'):
+        # If the SSID starts with '42[', try to parse the JSON array
+        # 42["auth",{"session":"a:4:{s:10:\"session_id\";s:32:\"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\";s:10:\"ip_address\";s:14:\"XXX.XXX.XXX.XXX\";s:10:\"user_agent\";s:80:\"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) Gecko/20100101 Firefox/142.0\";s:13:\"last_activity\";i:XXXXXXXX;}XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX","isDemo":X,"uid":XXXXXXX,"platform":X,"isFastHistory":true,"isOptimized":true}]
+        if ssid.startswith('42['):
             try:
-                # Extract the JSON part and load it
-                json_str = ssid[2:]
-                parsed_data: List[Any] = json.loads(json_str)
-                if len(parsed_data) > 1 and isinstance(parsed_data[1], dict):
+                # Extract the JSON part after '42'
+                json_str = ssid[2:].strip()
+                parsed_data = json.loads(json_str)
+                # Check if the parsed data is a list starting with "auth" and has a dict as the second element
+                if (
+                    isinstance(parsed_data, list)
+                    and len(parsed_data) >= 2
+                    and parsed_data[0] == "auth"
+                    and isinstance(parsed_data[1], dict)
+                    and "session" in parsed_data[1]
+                ):
                     self._auth_data = parsed_data[1]
-                    # Override with constructor parameters if they differ, or if it's a raw session ID
+                    # Override with constructor parameters
                     self._auth_data["isDemo"] = 1 if is_demo else 0
                     self._auth_data["uid"] = uid
                     self._auth_data["platform"] = platform
                     self._auth_data["isFastHistory"] = is_fast_history
-                    # Keep existing 'session' if present, otherwise set it
-                    if "session" not in self._auth_data:
-                        self._auth_data["session"] = (
-                            ssid  # Fallback: use raw SSID as session
-                        )
                     if self.enable_logging:
                         logger.info("SSID parsed from complete auth message.")
                     return
-            except (json.JSONDecodeError, IndexError, TypeError, ValueError) as e:
+                else:
+                    raise ValueError("Parsed data does not match expected structure")
+            except (json.JSONDecodeError, ValueError, IndexError, TypeError) as e:
                 if self.enable_logging:
                     logger.warning(
                         f"Failed to parse complete SSID string: {e}. Treating as raw session ID."

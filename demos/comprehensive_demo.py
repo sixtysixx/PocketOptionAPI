@@ -15,10 +15,10 @@ from pocketoptionapi_async.client import AsyncPocketOptionClient
 from pocketoptionapi_async.models import TimeFrame
 from pocketoptionapi_async.connection_keep_alive import ConnectionKeepAlive
 from pocketoptionapi_async.connection_monitor import ConnectionMonitor
-from tests.performance.load_testing_tool import (
-    LoadTester,
-    LoadTestConfig,
-)
+# from tests.performance.load_testing_tool import (
+#     LoadTester,
+#     LoadTestConfig,
+# )
 
 SETSSID = ""  # lowk dont even know if this works
 
@@ -29,7 +29,7 @@ async def demo_ssid_format_support():
     logger.info("=" * 50)
 
     # Example complete SSID (demo format)
-    complete_ssid = r'42["auth",{"session":"a:4:{s:10:\"session_id\";s:32:\"SESSION_ID_PLACEHOLDER\";s:10:\"ip_address\";s:14:\"1.1.1.1\";s:10:\"user_agent\";s:80:\"meow";s:13:\"last_activity\";i:1756438122;}188aa6d3edd50a579c7ff5f8cc771cb1","isDemo":0,"uid":12345678,"platform":2,"isFastHistory":true,"isOptimized":true}]'
+    complete_ssid =  r'42["auth",{"session":"demo_session_12345","isDemo":1,"uid":12345,"platform":1}]'
 
     logger.info("Success: SUPPORTED SSID FORMATS:")
     logger.info("• Complete authentication strings (like from browser)")
@@ -43,9 +43,9 @@ async def demo_ssid_format_support():
         client = AsyncPocketOptionClient(complete_ssid, is_demo=True)
 
         logger.info("Analysis: Parsing SSID components...")
-        logger.info(f"• Session ID extracted: {complete_ssid[35:55]}...")
-        logger.info("• Demo mode: True")
-        logger.info("• Platform: 1")
+        logger.info(f"• Session ID extracted: {client._auth_data.get('session', '')[:20]}...")
+        logger.info(f"• Demo mode: {'True' if client._auth_data.get('isDemo') == 1 else 'False'}")
+        logger.info(f"• Platform: {client._auth_data.get('platform', 1)}")
 
         success = await client.connect()
         if success:
@@ -703,7 +703,7 @@ async def run_comprehensive_demo(ssid: str | None = None):
     """Run the comprehensive demo of all features"""
 
     if not ssid:
-        ssid = r'42["auth",{"session":"comprehensive_demo_session","isDemo":1,"uid":12345,"platform":1}]'
+        ssid = r'42["auth",{"session":"comprehensive_demo_session","isDemo":true,"uid":12345,"platform":1,"isFastHistory":true}]'
         logger.warning(
             "Caution: Using demo SSID - some features will have limited functionality"
         )
