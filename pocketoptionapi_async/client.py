@@ -36,12 +36,12 @@ from .exceptions import (
 )
 
 
-class AsyncPocketOptionClient:  # pylint: disable=too-many-instance-attributes
+class AsyncPocketOptionClient:
     """
     Professional async PocketOption API client with modern Python practices
     """
 
-    def __init__(  # pylint: disable=too-many-arguments
+    def __init__(
         self,
         ssid: str,
         is_demo: bool = True,
@@ -597,7 +597,7 @@ class AsyncPocketOptionClient:  # pylint: disable=too-many-instance-attributes
             f"Failed to get candles after {max_retries} attempts (unexpected state)"
         )
 
-    async def get_candles_dataframe(  # pylint: disable=unused-argument
+    async def get_candles_dataframe(
         self,
         asset: str,
         timeframe: Union[str, int],

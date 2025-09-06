@@ -16,7 +16,8 @@ from tests.performance.load_testing_tool import (
     LoadTestConfig,
 )
 
-SETSSID = '' #lowk dont even know if this works
+SETSSID = ""  # lowk dont even know if this works
+
 
 async def demo_ssid_format_support():
     """Demo: Complete SSID format support"""
@@ -331,9 +332,7 @@ async def demo_error_handling():
     logger.info("\nError Handling: Demo: Advanced Error Handling and Recovery")
     logger.info("=" * 50)
 
-    ssid = (
-        SETSSID
-    )
+    ssid = SETSSID
 
     logger.info(
         "Technical Implementation: Demonstrating error handling capabilities..."

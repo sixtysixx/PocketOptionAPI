@@ -19,8 +19,8 @@ async def test_demo_live_fix():
     # Test 1: Demo mode with demo SSID (should work)
     print("\nTest: is_demo=True with demo SSID")
     client_demo = AsyncPocketOptionClient(ssid=demo_ssid, is_demo=True)
-    formatted_demo = client_demo._format_session_message()
-    parsed_demo = json.loads(formatted_demo[10:-1])  # Extract JSON part
+    formatted_demo = client_demo._format_session_message(demo_ssid)
+    parsed_demo = json.loads(formatted_demo[9:-1])  # Extract JSON part
 
     print(f"SSID isDemo value: {json.loads(demo_ssid[10:-1])['isDemo']}")
     print("Constructor is_demo: True")
@@ -31,7 +31,7 @@ async def test_demo_live_fix():
     # Test 2: Live mode with demo SSID (should override to live)
     print("\nTest: is_demo=False with demo SSID")
     client_live = AsyncPocketOptionClient(ssid=demo_ssid, is_demo=False)
-    formatted_live = client_live._format_session_message()
+    formatted_live = client_live._format_session_message(demo_ssid)
     parsed_live = json.loads(formatted_live[10:-1])  # Extract JSON part
 
     print(f"SSID isDemo value: {json.loads(demo_ssid[10:-1])['isDemo']}")
@@ -46,7 +46,7 @@ async def test_demo_live_fix():
     client_raw_demo = AsyncPocketOptionClient(
         ssid=raw_session, is_demo=True, uid=72645361
     )
-    formatted_raw_demo = client_raw_demo._format_session_message()
+    formatted_raw_demo = client_raw_demo._format_session_message(raw_session)
     parsed_raw_demo = json.loads(formatted_raw_demo[10:-1])
 
     print("Constructor is_demo: True")
@@ -59,7 +59,7 @@ async def test_demo_live_fix():
     client_raw_live = AsyncPocketOptionClient(
         ssid=raw_session, is_demo=False, uid=72645361
     )
-    formatted_raw_live = client_raw_live._format_session_message()
+    formatted_raw_live = client_raw_live._format_session_message(raw_session)
     parsed_raw_live = json.loads(formatted_raw_live[10:-1])
 
     print("Constructor is_demo: False")
