@@ -13,7 +13,12 @@ from collections import defaultdict
 import pandas as pd
 from loguru import logger
 
-from pocketoptionapi_async.monitoring import error_monitor, health_checker, ErrorCategory, ErrorSeverity
+from pocketoptionapi_async.monitoring import (
+    error_monitor,
+    health_checker,
+    ErrorCategory,
+    ErrorSeverity,
+)
 
 from pocketoptionapi_async.websocket_client import AsyncWebSocketClient
 from pocketoptionapi_async.models import (
@@ -33,6 +38,7 @@ from pocketoptionapi_async.exceptions import (
     InvalidParameterError,
     OrderError,
     WebSocketError,
+    ConnectionError,
 )
 
 
@@ -155,21 +161,95 @@ class AsyncPocketOptionClient:
         Parses the provided SSID or constructs auth data from parameters.
         This prepares the dictionary to be passed to socketio.AsyncClient's `auth` parameter.
         """
-        # If the SSID starts with '42[', try to parse the JSON array
-        # 42["auth",{"session":"a:4:{s:10:\"session_id\";s:32:\"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\";s:10:\"ip_address\";s:14:\"XXX.XXX.XXX.XXX\";s:10:\"user_agent\";s:80:\"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) Gecko/20100101 Firefox/142.0\";s:13:\"last_activity\";i:XXXXXXXX;}XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX","isDemo":X,"uid":XXXXXXX,"platform":X,"isFastHistory":true,"isOptimized":true}]
-        if ssid.startswith('42['):
+        # Enhanced SSID parsing for better authentication
+        # Supports multiple formats:
+        # 1. Full auth message: 42["auth",{"session":"...","isDemo":0,"uid":69982301,"platform":2,"isFastHistory":true,"isOptimized":true}]
+        # 2. PHP serialized session: a:5:{s:10:\"session_id\";s:32:\"d03bdc0ea03521af9c954dd7a6e958ce\";s:10:\"ip_address\";s:14:\"97.118.235.120\";s:10:\"user_agent\";s:80:\"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) Gecko/20100101 Firefox/142.0\";s:13:\"last_activity\";i:1757285057;s:9:\"user_data\";s:0:\"\";}151fcde71d568bb58d3fa0096c70fd87
+        # 3. Raw session ID: d03bdc0ea03521af9c954dd7a6e958ce
+        # 4. Demo session: 1v072jiqj90u7sf82u22a1odns
+
+        if self.enable_logging:
+            logger.info(
+                f"Processing SSID input (length: {len(ssid)}, starts with: {ssid[:20] if len(ssid) > 20 else ssid})"
+            )
+
+        # Handle full auth message format
+        if ssid.startswith("42["):
             try:
                 # Extract the JSON part after '42'
                 json_str = ssid[2:].strip()
                 parsed_data = json.loads(json_str)
+
                 # Check if the parsed data is a list starting with "auth" and has a dict as the second element
                 if (
                     isinstance(parsed_data, list)
                     and len(parsed_data) >= 2
                     and parsed_data[0] == "auth"
                     and isinstance(parsed_data[1], dict)
-                    and "session" in parsed_data[1]
                 ):
+                    # Enhanced validation - check for session or handle missing fields
+                    auth_dict = parsed_data[1]
+
+                    # Log the parsed auth data for debugging
+                    if self.enable_logging:
+                        logger.info(f"Parsed auth data keys: {list(auth_dict.keys())}")
+                        logger.info(f"Full auth data: {auth_dict}")
+
+                    # Check for session in multiple possible formats
+                    if "session" in auth_dict:
+                        session_value = auth_dict["session"]
+                        if self.enable_logging:
+                            logger.info(
+                                f"Found session in auth data: {session_value[:50]}..."
+                            )
+                    else:
+                        # Try to find session-like data in other fields
+                        for key, value in auth_dict.items():
+                            if isinstance(value, str) and (
+                                "session" in key.lower() or len(value) > 30
+                            ):
+                                auth_dict["session"] = value
+                                if self.enable_logging:
+                                    logger.info(
+                                        f"Using {key} as session: {value[:30]}..."
+                                    )
+                                break
+
+                    # If still no session, this might be an issue
+                    if "session" not in auth_dict:
+                        if self.enable_logging:
+                            logger.warning(
+                                "No session field found in auth data, treating as raw session ID"
+                            )
+                        # Use the raw SSID as session
+                        auth_dict["session"] = ssid
+
+                    # Ensure all required fields are present
+                    required_fields = ["isDemo", "uid", "platform"]
+                    for field in required_fields:
+                        if field not in auth_dict:
+                            if field == "isDemo":
+                                auth_dict[field] = 1 if is_demo else 0
+                            elif field == "uid":
+                                auth_dict[field] = uid
+                            elif field == "platform":
+                                auth_dict[field] = platform
+
+                    self._auth_data = auth_dict
+                    # Override with constructor parameters
+                    self._auth_data["isDemo"] = 1 if is_demo else 0
+                    self._auth_data["uid"] = uid
+                    self._auth_data["platform"] = platform
+                    self._auth_data["isFastHistory"] = is_fast_history
+                    if self.enable_logging:
+                        logger.info("SSID parsed from complete auth message.")
+                        logger.info(f"Final auth data: {self._auth_data}")
+                    return
+                else:
+                    if self.enable_logging:
+                        logger.warning(
+                            "No session field found in auth data, treating as raw session ID"
+                        )
                     self._auth_data = parsed_data[1]
                     # Override with constructor parameters
                     self._auth_data["isDemo"] = 1 if is_demo else 0
@@ -179,17 +259,50 @@ class AsyncPocketOptionClient:
                     if self.enable_logging:
                         logger.info("SSID parsed from complete auth message.")
                     return
-                else:
-                    raise ValueError("Parsed data does not match expected structure")
             except (json.JSONDecodeError, ValueError, IndexError, TypeError) as e:
                 if self.enable_logging:
                     logger.warning(
                         f"Failed to parse complete SSID string: {e}. Treating as raw session ID."
                     )
 
+        # Enhanced handling for raw session ID or parsing failure
+        session_value = str(ssid)
+
+        # Try to extract session from PHP serialized format if present
+        if "session_id" in session_value and "a:4:" in session_value:
+            if self.enable_logging:
+                logger.info(
+                    "Detected PHP serialized session data, attempting extraction..."
+                )
+            try:
+                import re
+
+                # Extract session_id from PHP serialized string
+                session_match = re.search(
+                    r'session_id";s:(\d+):"([^"]+)"', session_value
+                )
+                if session_match:
+                    session_value = session_match.group(2)
+                    if self.enable_logging:
+                        logger.info(
+                            f"Extracted session ID from PHP serialized data: {session_value[:30]}..."
+                        )
+                else:
+                    # Try alternative pattern
+                    session_match = re.search(r'"session":"([^"]+)"', session_value)
+                    if session_match:
+                        session_value = session_match.group(1)
+                        if self.enable_logging:
+                            logger.info(
+                                f"Extracted session from JSON-like string: {session_value[:30]}..."
+                            )
+            except Exception as e:
+                if self.enable_logging:
+                    logger.warning(f"Failed to extract from PHP serialized data: {e}")
+
         # If parsing failed or it's a raw session ID
         self._auth_data = {
-            "session": ssid,
+            "session": session_value,
             "isDemo": 1 if is_demo else 0,
             "uid": uid,
             "platform": platform,
@@ -269,9 +382,23 @@ class AsyncPocketOptionClient:
 
     async def _on_auth_error(self, data: Dict[str, Any]) -> None:
         """Handle authentication errors from the WebSocket client."""
+        error_message = data.get("message", "Unknown authentication error")
         logger.error(
-            f"Authentication error reported by WebSocket client: {data.get('message')}"
+            f"Authentication error reported by WebSocket client: {error_message}"
         )
+        logger.error(f"Full auth error data: {data}")
+
+        # Enhanced error logging for debugging
+        if "session" in str(data).lower():
+            logger.error("Session-related authentication error detected")
+        if "expired" in str(data).lower():
+            logger.error(
+                "Session appears to be expired - please refresh browser and get new SSID"
+            )
+        if "invalid" in str(data).lower():
+            logger.error("Session appears to be invalid - please verify SSID format")
+
+        self._auth_error_event.set()  # Signal authentication error
         await self._emit_event("auth_error", data)  # Use await for _emit_event
         # This will be caught by _wait_for_authentication and potentially trigger disconnect/reconnection logic.
 
@@ -286,7 +413,7 @@ class AsyncPocketOptionClient:
         )
         self._websocket.add_event_handler("reconnected", self._on_websocket_reconnected)
         self._websocket.add_event_handler(
-            "authenticated", self._on_authenticated
+            "successauth", self._on_authenticated
         )  # Direct from websocket
         self._websocket.add_event_handler("balance_data", self._on_balance_data)
         self._websocket.add_event_handler(
@@ -400,7 +527,7 @@ class AsyncPocketOptionClient:
 
     async def disconnect(self) -> None:
         """Disconnect from PocketOption and cleanup all resources"""
-        logger.info("Disconnecting from PocketOption...")
+        logger.info("Disconnecting...")
 
         # Disconnect the underlying Socket.IO client
         await self._websocket.disconnect()
@@ -534,23 +661,13 @@ class AsyncPocketOptionClient:
                 candle_future = asyncio.Future[Any]()
                 request_id = f"{asset}_{timeframe_seconds}"
 
-                # Store the future for this request.
-                # _candle_requests should be an attribute, initialized in __init__
-                # It is already initialized now, so this check is for robustness.
                 if not hasattr(self, "_candle_requests"):
                     self._candle_requests = {}
                 self._candle_requests[request_id] = candle_future
 
-                # Prepare the message for `changeSymbol` Socket.IO event
-                # This event is observed to subscribe to real-time candles and also fetch initial history.
                 message_payload: Dict[str, Any] = {
                     "asset": asset,
                     "period": timeframe_seconds,
-                    # count and end_time are not typically sent directly with changeSymbol,
-                    # the server streams data or sends initial batch based on subscription.
-                    # If specific historical range is needed, a different API endpoint might be required
-                    # or a specific 'loadHistoryPeriod' event with params not
-                    # directly observed here. For now, we assume `changeSymbol` is sufficient to get latest candles.
                 }
 
                 await self._websocket.send_message("changeSymbol", message_payload)
@@ -746,59 +863,85 @@ class AsyncPocketOptionClient:
 
         return stats
 
-    def _parse_complete_ssid(self, ssid: str) -> None:
-        """
-        Old method, replaced by _parse_ssid_into_auth_data.
-        This method will no longer be used directly for parsing as `_auth_data`
-        is prepared earlier.
-        """
-        pass
-
     async def _wait_for_authentication(self, timeout: float = 30.0) -> None:
         """Wait for authentication to complete, using an internal event."""
         auth_received_event = asyncio.Event()
+        auth_success = False
+        auth_error_msg = None
 
         logger.info(f"Starting authentication wait (timeout={timeout}s)")
 
-        ssid_info = getattr(self, "_ssid", "Unknown")
-        if str(ssid_info).startswith("fake-"):
+        # Check if we're using a test SSID
+        session_id = self._auth_data.get("session", "Unknown")
+        if str(session_id).startswith("fake-"):
             logger.warning(
-                f"Using test SSID '{ssid_info}': Authentication will timeout. "
+                f"Using test SSID '{session_id}': Authentication will timeout. "
                 f"Use real SSID from browser developer tools for successful authentication."
             )
         else:
-            logger.debug(f"Using SSID: {ssid_info[:8]}...")
+            logger.debug(f"Using session ID: {str(session_id)[:20]}...")
 
-        def on_auth_success(data: Any):
-            logger.success(
-                "Received 'authenticated' event - authentication successful!"
-            )
+        def on_auth_success(data: Any) -> None:
+            nonlocal auth_success
+            logger.success("Received 'successauth' event - authentication successful!")
             logger.debug(f"Authentication data: {data}")
+            auth_success = True
             auth_received_event.set()
 
-        def on_auth_error(data: Any):
+        def on_auth_error(data: Any) -> None:
+            nonlocal auth_error_msg
+            auth_error_msg = str(data.get("message", "Unknown authentication error"))
             logger.error(f"Received 'autherror' event - authentication failed: {data}")
             auth_received_event.set()
 
-        self.add_event_callback("authenticated", on_auth_success)
+        # Register event handlers for authentication
+        self.add_event_callback("successauth", on_auth_success)
         self.add_event_callback("autherror", on_auth_error)
+
+        # Also listen for alternative authentication event names that might be used
+        self.add_event_callback("authenticated", on_auth_success)
+        self.add_event_callback("auth_failed", on_auth_error)
 
         try:
             logger.debug("Waiting for authentication response...")
             await asyncio.wait_for(auth_received_event.wait(), timeout=timeout)
-            logger.success("Authentication completed successfully.")
+
+            if auth_success:
+                logger.success("Authentication completed successfully.")
+            else:
+                error_msg = (
+                    auth_error_msg or "Authentication failed without specific error"
+                )
+                logger.error(f"Authentication failed: {error_msg}")
+                raise AuthenticationError(f"Authentication failed: {error_msg}")
+
         except asyncio.TimeoutError as e:
             logger.error(
-                f"Authentication timeout: Did not receive 'authenticated' or 'autherror' event "
-                f"within {timeout} seconds. This is expected behavior with test SSIDs (fake-*)."
+                f"Authentication timeout: Did not receive authentication confirmation "
+                f"within {timeout} seconds. Session ID: {str(session_id)[:20]}..."
             )
+
+            # Log additional debugging information
+            if self._websocket.is_connected:
+                logger.info("WebSocket is connected but authentication timed out.")
+                logger.info("This might indicate:")
+                logger.info("1. Invalid or expired session ID")
+                logger.info("2. Network connectivity issues")
+                logger.info("3. Server-side authentication problems")
+            else:
+                logger.info("WebSocket is not connected.")
+
             logger.info(
-                "To resolve: Use real SSID from browser developer tools instead of test SSIDs."
+                "To resolve: Ensure you're using a valid SSID from browser developer tools. "
+                "The SSID should be extracted from a live PocketOption session."
             )
             raise AuthenticationError("Authentication timeout") from e
         finally:
-            self.remove_event_callback("authenticated", on_auth_success)
+            # Clean up event handlers
+            self.remove_event_callback("successauth", on_auth_success)
             self.remove_event_callback("autherror", on_auth_error)
+            self.remove_event_callback("authenticated", on_auth_success)
+            self.remove_event_callback("auth_failed", on_auth_error)
 
     async def _initialize_data(self) -> None:
         """Initialize client data after connection and authentication."""
@@ -1278,10 +1421,9 @@ class AsyncPocketOptionClient:
     async def _on_authenticated(self, data: Dict[str, Any]) -> None:
         """Handle authentication success"""
         if self.enable_logging:
-            logger.success(" Successfully authenticated with PocketOption")
-        # _connection_stats["successful_connections"] += 1 # This is updated in connect method already
-        # Use self._emit_event
-        await self._emit_event("authenticated", data)  #
+            logger.success("Successfully authenticated")
+            # Use self._emit_event
+        await self._emit_event("successauth", data)
 
     async def _on_balance_updated(self, data: Dict[str, Any]) -> None:
         """Handle balance update"""
@@ -1394,7 +1536,7 @@ class AsyncPocketOptionClient:
     async def _on_disconnected(self, data: Dict[str, Any]) -> None:
         """Handle disconnection event"""
         if self.enable_logging:
-            logger.warning("Disconnected from PocketOption")
+            logger.warning("Disconnected. Attempting to reconnect...")
         # Use self._emit_event
         await self._emit_event("disconnected", data)  #
 

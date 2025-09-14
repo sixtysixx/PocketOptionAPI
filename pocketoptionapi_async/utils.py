@@ -18,7 +18,7 @@ def format_session_id(
     uid: int = 0,
     platform: int = 1,
     is_fast_history: bool = True,
-) -> Dict[str, Any]:  # Changed return type to Dict[str, Any]
+) -> Dict[str, Any]:
     """
     Format session ID for authentication into a dictionary suitable for
     `python-socketio`'s `auth` parameter.

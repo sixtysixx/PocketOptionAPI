@@ -1,6 +1,6 @@
 # PocketOption API- By ChipaDevTeam - Modified by Six <3
 
-## Support us
+## Support us by signing up with our affiliate link, depositing, and trading!
 Join PocketOption with Six's affiliate link: [Six PocketOption Affiliate link](https://u3.shortink.io/main?utm_campaign=821725&utm_source=affiliate&utm_medium=sr&a=IqeAmBtFTrEWbh&ac=api&code=DLN960)
 <br>
 Join PocketOption with Chipas affiliate link: [Chipas PocketOption Affiliate link](https://u3.shortink.io/smart/SDIaxbeamcYYqB) 
@@ -64,16 +64,17 @@ To use the API with real data, you need to extract your session ID from the brow
 3. **Go to Network tab**
 4. **Filter by WebSocket (WS)**
 5. **Look for authentication message starting with `42["auth"`**
-6. **Copy the complete message including the `42["auth",{...}]` format**
+6. **Right click and copy the complete message including the `42["auth",{...}]` format**
 
 Example SSID format:
 ```
 42["auth",{"session":"abcd1234efgh5678","isDemo":1,"uid":12345,"platform":1}]
 ```
 
-If you are unable to find it, try running the automatic SSID scraper under the `tools` folder.
+# If you are unable to find it, try running the automatic SSID scraper under the `tools` folder.
+# Ensure to right click and click "Copy message" or similar- do NOT copy the raw data, as this is PHP formatted, and not valid JSON
 
-## Comon errors
+## Common errors (to be fixed soon)
 
 ### Traceback:
 ```
@@ -90,26 +91,26 @@ If you are unable to find it, try running the automatic SSID scraper under the `
 2025-07-13 15:25:16.558 | WARNING  | pocketoptionapi_async.websocket_client:connect:206 - Failed to connect to wss://try-demo-eu.po.market/socket.io/?EIO=4&transport=websocket: BaseEventLoop.create_connection() got an unexpected keyword argument 'extra_headers'
 2025-07-13 15:25:16.558 | WARNING  | pocketoptionapi_async.client:_start_regular_connection:242 - Failed to connect to region DEMO_2: Failed to connect to any WebSocket endpoint
 Traceback (most recent call last):
-  File "/Users/vigowalker/Downloads/resurgenthavoc_bot/test1.py", line 20, in <module>
+  File "/Users/*****/Downloads/*****/test1.py", line 20, in <module>
     asyncio.run(main())
-  File "/Users/vigowalker/Downloads/resurgenthavoc_bot/.conda/lib/python3.11/asyncio/runners.py", line 190, in run
+  File "/Users/*****/Downloads/*****/.conda/lib/python3.11/asyncio/runners.py", line 190, in run
     return runner.run(main)
            ^^^^^^^^^^^^^^^^
-  File "/Users/vigowalker/Downloads/resurgenthavoc_bot/.conda/lib/python3.11/asyncio/runners.py", line 118, in run
+  File "/Users/*****/Downloads/*****/.conda/lib/python3.11/asyncio/runners.py", line 118, in run
     return self._loop.run_until_complete(task)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/vigowalker/Downloads/resurgenthavoc_bot/.conda/lib/python3.11/asyncio/base_events.py", line 654, in run_until_complete
+  File "/Users/*****/Downloads/*****/.conda/lib/python3.11/asyncio/base_events.py", line 654, in run_until_complete
     return future.result()
            ^^^^^^^^^^^^^^^
-  File "/Users/vigowalker/Downloads/resurgenthavoc_bot/test1.py", line 9, in main
+  File "/Users/*****/Downloads/*****/test1.py", line 9, in main
     account_info = await client.get_balance()
                    ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/vigowalker/Downloads/resurgenthavoc_bot/.conda/lib/python3.11/site-packages/pocketoptionapi_async/client.py", line 376, in get_balance
+  File "/Users/*****/Downloads/*****/.conda/lib/python3.11/site-packages/pocketoptionapi_async/client.py", line 376, in get_balance
     raise ConnectionError("Not connected to PocketOption")
 pocketoptionapi_async.exceptions.ConnectionError: Not connected to PocketOption
 ```
 
-to fix this error, run this commands:
+To fix this error, run these two commands:
 ```
 pip uninstall websockets
 pip install websockets==11.0

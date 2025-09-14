@@ -2,11 +2,11 @@
 Custom exceptions for the PocketOption API
 """
 
+from typing import Optional
+
 
 class PocketOptionError(Exception):
     """Base exception for all PocketOption API errors"""
-
-    from typing import Optional
 
     def __init__(self, message: str, error_code: Optional[str] = None):
         super().__init__(message)

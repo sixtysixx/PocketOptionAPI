@@ -4,7 +4,8 @@ Test script to verify the demo/live mode fix
 
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 import asyncio
 import json
@@ -50,7 +51,9 @@ async def test_demo_live_fix():
     client_raw_demo = AsyncPocketOptionClient(
         ssid=raw_session, is_demo=True, uid=72645361
     )
-    formatted_raw_demo = client_raw_demo._format_session_message(raw_session, message="auth")
+    formatted_raw_demo = client_raw_demo._format_session_message(
+        raw_session, message="auth"
+    )
     parsed_raw_demo = json.loads(formatted_raw_demo[10:-1])
 
     print("Constructor is_demo: True")
@@ -63,7 +66,9 @@ async def test_demo_live_fix():
     client_raw_live = AsyncPocketOptionClient(
         ssid=raw_session, is_demo=False, uid=72645361
     )
-    formatted_raw_live = client_raw_live._format_session_message(raw_session, message="auth")
+    formatted_raw_live = client_raw_live._format_session_message(
+        raw_session, message="auth"
+    )
     parsed_raw_live = json.loads(formatted_raw_live[10:-1])
 
     print("Constructor is_demo: False")

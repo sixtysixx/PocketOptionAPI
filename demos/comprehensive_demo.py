@@ -5,7 +5,8 @@ Showcases all advanced features and improvements
 
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 import asyncio
 import time
@@ -15,10 +16,10 @@ from pocketoptionapi_async.client import AsyncPocketOptionClient
 from pocketoptionapi_async.models import TimeFrame
 from pocketoptionapi_async.connection_keep_alive import ConnectionKeepAlive
 from pocketoptionapi_async.connection_monitor import ConnectionMonitor
-# from tests.performance.load_testing_tool import (
-#     LoadTester,
-#     LoadTestConfig,
-# )
+from tests.performance.load_testing_tool import (
+    LoadTester,
+    LoadTestConfig,
+)
 
 SETSSID = ""  # lowk dont even know if this works
 
@@ -29,7 +30,7 @@ async def demo_ssid_format_support():
     logger.info("=" * 50)
 
     # Example complete SSID (demo format)
-    complete_ssid =  r'42["auth",{"session":"demo_session_12345","isDemo":1,"uid":12345,"platform":1}]'
+    complete_ssid = r'42["auth",{"session":"demo_session_12345","isDemo":1,"uid":12345,"platform":1}]'
 
     logger.info("Success: SUPPORTED SSID FORMATS:")
     logger.info("• Complete authentication strings (like from browser)")
@@ -43,8 +44,12 @@ async def demo_ssid_format_support():
         client = AsyncPocketOptionClient(complete_ssid, is_demo=True)
 
         logger.info("Analysis: Parsing SSID components...")
-        logger.info(f"• Session ID extracted: {client._auth_data.get('session', '')[:20]}...")
-        logger.info(f"• Demo mode: {'True' if client._auth_data.get('isDemo') == 1 else 'False'}")
+        logger.info(
+            f"• Session ID extracted: {client._auth_data.get('session', '')[:20]}..."
+        )
+        logger.info(
+            f"• Demo mode: {'True' if client._auth_data.get('isDemo') == 1 else 'False'}"
+        )
         logger.info(f"• Platform: {client._auth_data.get('platform', 1)}")
 
         success = await client.connect()
