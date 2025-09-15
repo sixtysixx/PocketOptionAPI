@@ -285,7 +285,7 @@ API_LIMITS: Dict[str, float] = {
     "max_duration": 43200,  # 12 hours in seconds: Maximum duration for an option trade
     "max_concurrent_orders": 10,  # Maximum number of open orders at any given time
     "rate_limit": 100,  # requests per minute: General API request rate limit
-    "default_timeout": 30.0,  # Default timeout for API calls
+    "default_timeout": 20.0,  # Default timeout for API calls
 }
 
 # Default headers to be sent with WebSocket connection requests.

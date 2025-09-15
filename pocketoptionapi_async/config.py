@@ -28,7 +28,7 @@ class TradingConfig:
     min_duration: int = 60
     max_duration: int = 43200
     max_concurrent_orders: int = 10
-    default_timeout: float = 30.0
+    default_timeout: float = 20.0
 
 
 @dataclass
